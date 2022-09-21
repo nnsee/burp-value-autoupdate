@@ -30,17 +30,19 @@ class ItemStore(ctx: PersistenceContext) {
 
     init {
         this.ctx = ctx
-        this.items = readFromStore()
+        this.items = load()
     }
 
-    private fun readFromStore() : Items {
+    private fun load() : Items {
+        // loads and returns items from persistent storage
         var jsonStr = ctx.getString(ITEM_STORE) ?: "{}"
 
         return Json.decodeFromString(jsonStr)
     }
 
-    fun syncToStore() {
-       ctx.setString(ITEM_STORE, Json.encodeToString(items))
+    fun save() {
+        // saves items in memory to disk
+        ctx.setString(ITEM_STORE, Json.encodeToString(items))
     }
 
     fun nuke() {

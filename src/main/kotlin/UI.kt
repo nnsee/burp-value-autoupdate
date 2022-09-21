@@ -115,7 +115,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
             itemStore.items.remove(rowToName(row))
         }
 
-        itemStore.syncToStore()
+        itemStore.save()
 
         reloadValuesTable(itemStore.items)
     }
@@ -167,7 +167,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         val enabled = dtm.getValueAt(index, 0) as Boolean
 
         itemStore.items[rowToName(index)]!!.enabled = enabled
-        itemStore.syncToStore()
+        itemStore.save()
     }
 
     //<editor-fold desc="UI layout cruft">
@@ -427,7 +427,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
         nameField.isEnabled = false
 
-        itemStore.syncToStore()
+        itemStore.save()
         reloadValuesTable(itemStore.items)
 
         return true

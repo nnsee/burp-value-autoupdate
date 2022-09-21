@@ -88,7 +88,7 @@ class Replacer (api: MontoyaApi, itemStore: ItemStore) {
             }
         }
 
-        if (needsSync) itemStore.syncToStore()
+        if (needsSync) itemStore.save()
         return updatedRequest
     }
 
@@ -109,6 +109,6 @@ class Replacer (api: MontoyaApi, itemStore: ItemStore) {
             }
         }
 
-        if (needsSync) itemStore.syncToStore()
+        if (needsSync) itemStore.save()
     }
 }

@@ -9,12 +9,14 @@ import java.awt.Color
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Window
-import java.awt.event.*
+import java.awt.event.ItemEvent
 import java.awt.event.ItemEvent.SELECTED
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
+import java.awt.event.WindowEvent
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
-import javax.swing.event.ListSelectionEvent
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
@@ -28,12 +30,7 @@ private fun reloadValuesTable(items: Items) {
     items.forEach {
         dtm.addRow(
             arrayOf(
-                it.value.enabled,
-                it.key,
-                it.value.match,
-                it.value.lastMatch,
-                it.value.matchCount,
-                it.value.replaceCount
+                it.value.enabled, it.key, it.value.match, it.value.lastMatch, it.value.matchCount, it.value.replaceCount
             )
         )
     }
@@ -121,13 +118,13 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         return extEnabled and enabledTools[tool]!!
     }
 
-    private fun valueAdd(e: ActionEvent) {
-        val window = AddEditDialog(getWindowAncestor(this), api, -1, itemStore)
+    private fun valueAdd() {
+        val window = AddEditDialog(getWindowAncestor(this), -1, itemStore)
         window.title = "Add value"
         window.isVisible = true
     }
 
-    private fun valueEdit(e: ActionEvent) {
+    private fun valueEdit() {
         val selected = valuesTable.selectedRowCount
         if (selected < 1) {
             return
@@ -139,12 +136,12 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
         val index = valuesTable.selectedRows[0]
 
-        val window = AddEditDialog(getWindowAncestor(this), api, index, itemStore)
+        val window = AddEditDialog(getWindowAncestor(this), index, itemStore)
         window.title = "Edit value"
         window.isVisible = true
     }
 
-    private fun valueRemove(e: ActionEvent) {
+    private fun valueRemove() {
         val selectedRows = valuesTable.selectedRows.reversed()
         VALUES_TABLE.clearSelection() // visual bug work around
 
@@ -157,7 +154,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         reloadValuesTable(itemStore.items)
     }
 
-    private fun valueRefresh(e: ActionEvent) {
+    private fun valueRefresh() {
         reloadValuesTable(itemStore.items)
     }
 
@@ -207,7 +204,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         itemStore.save()
     }
 
-    private fun tableSelected(e: ListSelectionEvent) {
+    private fun tableSelected() {
         when (valuesTable.selectedRowCount) {
             0 -> {
                 valueRemove.isEnabled = false
@@ -256,21 +253,21 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         valueButtons.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
 
         valueAdd.text = "Add"
-        valueAdd.addActionListener { e: ActionEvent -> valueAdd(e) }
+        valueAdd.addActionListener { valueAdd() }
         valueButtons.add(valueAdd, "cell 0 0")
 
         valueEdit.text = "Edit"
-        valueEdit.addActionListener { e: ActionEvent -> valueEdit(e) }
+        valueEdit.addActionListener { valueEdit() }
         valueEdit.isEnabled = false
         valueButtons.add(valueEdit, "cell 0 1")
 
         valueRemove.text = "Remove"
-        valueRemove.addActionListener { e: ActionEvent -> valueRemove(e) }
+        valueRemove.addActionListener { valueRemove() }
         valueRemove.isEnabled = false
         valueButtons.add(valueRemove, "cell 0 2")
 
         valueRefresh.text = "Refresh"
-        valueRefresh.addActionListener { e: ActionEvent -> valueRefresh(e) }
+        valueRefresh.addActionListener { valueRefresh() }
         valueButtons.add(valueRefresh, "cell 0 3")
         valueSelectorPanel.add(valueButtons, "cell 0 0,aligny top,growy 0")
 
@@ -295,7 +292,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         cm.getColumn(0).preferredWidth = 25
         valuesTable.preferredScrollableViewportSize = Dimension(600, 300)
         (valuesTable.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
-        valuesTable.selectionModel.addListSelectionListener { e: ListSelectionEvent -> tableSelected(e) }
+        valuesTable.selectionModel.addListSelectionListener { tableSelected() }
 
         valuesTablePanel.setViewportView(valuesTable)
         valueSelectorPanel.add(valuesTablePanel, "cell 1 0")
@@ -342,7 +339,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
     //</editor-fold>
 }
 
-class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: ItemStore) : JDialog(owner) {
+class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(owner) {
     private val headerTypeHint = "Matches header names and replaces values "
     private val regexTypeHint = "Uses regex for matches (named group: val)"
     private var index: Int
@@ -390,7 +387,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         nameField.isEnabled = false
     }
 
-    private fun keyTyped(e: KeyEvent) {
+    private fun keyTyped() {
         enableApply()
         showError(" ")
     }
@@ -413,11 +410,11 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         applyButton.isEnabled = true
     }
 
-    private fun ok(e: ActionEvent) {
-        if (apply(e)) this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
+    private fun ok() {
+        if (apply()) this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
     }
 
-    private fun apply(e: ActionEvent): Boolean {
+    private fun apply(): Boolean {
         applyButton.isEnabled = false
         val name = nameField.text
         val match = matchField.text
@@ -461,7 +458,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         return true
     }
 
-    private fun cancel(e: ActionEvent) {
+    private fun cancel() {
         this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
     }
 
@@ -481,7 +478,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
         nameField.addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
-                this@AddEditDialog.keyTyped(e)
+                this@AddEditDialog.keyTyped()
             }
         })
         panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
@@ -491,7 +488,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
         matchField.addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
-                this@AddEditDialog.keyTyped(e)
+                this@AddEditDialog.keyTyped()
             }
         })
         panel1.add(matchField, "cell 1 1,wmin 270,grow 0")
@@ -522,16 +519,16 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         okButton.text = "OK"
         okButton.background = UIManager.getColor("Button.background")
         okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
-        okButton.addActionListener { e: ActionEvent -> ok(e) }
+        okButton.addActionListener { ok() }
         panel3.add(okButton, "west,gapx null 10")
 
         applyButton.text = "Apply"
         applyButton.isEnabled = false
-        applyButton.addActionListener { e: ActionEvent -> apply(e) }
+        applyButton.addActionListener { apply() }
         panel3.add(applyButton, "west")
 
         cancelButton.text = "Cancel"
-        cancelButton.addActionListener { e: ActionEvent -> cancel(e) }
+        cancelButton.addActionListener { cancel() }
         panel3.add(cancelButton, "EAST")
         contentPane.add(panel3, "cell 0 5")
 

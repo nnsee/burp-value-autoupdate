@@ -52,6 +52,32 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         EXTENDER to false,
     )
 
+    private val headerPanel = JPanel()
+    private val mainLabel = JLabel()
+    private val headerNestedPanel = JPanel()
+    private val enabledToggle = JCheckBox()
+    private val separator2 = JSeparator()
+    private val valuesPanel = JPanel()
+    private val valuesLabel = JLabel()
+    private val valueSelectorPanel = JPanel()
+    private val valueButtons = JPanel()
+    private val valueAdd = JButton()
+    private val valueEdit = JButton()
+    private val valueRemove = JButton()
+    private val valueRefresh = JButton()
+    private val valuesTablePanel = JScrollPane()
+    private val valuesTable = VALUES_TABLE
+    private val separator1 = JSeparator()
+    private val toolsPanel = JPanel()
+    private val toolsLabel = JLabel()
+    private val toolSelectionPanel = JPanel()
+    private val proxySel = JCheckBox()
+    private val scannerSel = JCheckBox()
+    private val intruderSel = JCheckBox()
+    private val repeaterSel = JCheckBox()
+    private val sequencerSel = JCheckBox()
+    private val extenderSel = JCheckBox()
+
     init {
         this.api = api
         this.ctx = api.persistence().userContext()
@@ -191,33 +217,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
-        headerPanel = JPanel()
-        mainLabel = JLabel()
-        headerNestedPanel = JPanel()
-        enabledToggle = JCheckBox()
-        separator2 = JSeparator()
-        valuesPanel = JPanel()
-        valuesLabel = JLabel()
-        valueSelectorPanel = JPanel()
-        valueButtons = JPanel()
-        valueAdd = JButton()
-        valueEdit = JButton()
-        valueRemove = JButton()
-        valueRefresh = JButton()
-        valuesTablePanel = JScrollPane()
-        valuesTable = VALUES_TABLE
-        separator1 = JSeparator()
-        toolsPanel = JPanel()
-        toolsLabel = JLabel()
-        toolSelectionPanel = JPanel()
-        proxySel = JCheckBox()
-        scannerSel = JCheckBox()
-        intruderSel = JCheckBox()
-        repeaterSel = JCheckBox()
-        sequencerSel = JCheckBox()
-        extenderSel = JCheckBox()
-        tableSel = JCheckBox()
-
         layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][][]")
 
         headerPanel.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
@@ -329,32 +328,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         add(toolsPanel, "cell 0 4")
     }
 
-    private lateinit var headerPanel: JPanel
-    private lateinit var mainLabel: JLabel
-    private lateinit var headerNestedPanel: JPanel
-    private lateinit var enabledToggle: JCheckBox
-    private lateinit var separator2: JSeparator
-    private lateinit var valuesPanel: JPanel
-    private lateinit var valuesLabel: JLabel
-    private lateinit var valueSelectorPanel: JPanel
-    private lateinit var valueButtons: JPanel
-    private lateinit var valueAdd: JButton
-    private lateinit var valueEdit: JButton
-    private lateinit var valueRemove: JButton
-    private lateinit var valueRefresh: JButton
-    private lateinit var valuesTablePanel: JScrollPane
-    private lateinit var valuesTable: JTable
-    private lateinit var separator1: JSeparator
-    private lateinit var toolsPanel: JPanel
-    private lateinit var toolsLabel: JLabel
-    private lateinit var toolSelectionPanel: JPanel
-    private lateinit var proxySel: JCheckBox
-    private lateinit var scannerSel: JCheckBox
-    private lateinit var intruderSel: JCheckBox
-    private lateinit var repeaterSel: JCheckBox
-    private lateinit var sequencerSel: JCheckBox
-    private lateinit var extenderSel: JCheckBox
-    private lateinit var tableSel: JCheckBox
     //</editor-fold>
 }
 
@@ -363,6 +336,21 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
     private val regexTypeHint  = "Uses regex for matches (named group: val)"
     private var index: Int
     private val itemStore: ItemStore
+
+    private val panel1 = JPanel()
+    private val nameLabel = JLabel()
+    private val nameField = JTextField()
+    private val matchLabel = JLabel()
+    private val matchField = JTextField()
+    private val typeField = JLabel()
+    private val headerButton = JRadioButton()
+    private val regexButton = JRadioButton()
+    private val typeDescription = JLabel()
+    private val errorLabel = JLabel()
+    private val panel3 = JPanel()
+    private val okButton = JButton()
+    private val applyButton = JButton()
+    private val cancelButton = JButton()
 
     init {
         this.index = index
@@ -472,21 +460,6 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
-        panel1 = JPanel()
-        nameLabel = JLabel()
-        nameField = JTextField()
-        matchLabel = JLabel()
-        matchField = JTextField()
-        typeField = JLabel()
-        headerButton = JRadioButton()
-        regexButton = JRadioButton()
-        typeDescription = JLabel()
-        errorLabel = JLabel()
-        panel3 = JPanel()
-        okButton = JButton()
-        applyButton = JButton()
-        cancelButton = JButton()
-
         val contentPane = contentPane
         contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
 
@@ -560,20 +533,5 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         pack()
         setLocationRelativeTo(owner)
     }
-
-    private lateinit var panel1: JPanel
-    private lateinit var nameLabel: JLabel
-    private lateinit var nameField: JTextField
-    private lateinit var matchLabel: JLabel
-    private lateinit var matchField: JTextField
-    private lateinit var typeField: JLabel
-    private lateinit var headerButton: JRadioButton
-    private lateinit var regexButton: JRadioButton
-    private lateinit var typeDescription: JLabel
-    private lateinit var errorLabel: JLabel
-    private lateinit var panel3: JPanel
-    private lateinit var okButton: JButton
-    private lateinit var applyButton: JButton
-    private lateinit var cancelButton: JButton
     //</editor-fold>
 }

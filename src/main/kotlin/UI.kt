@@ -5,6 +5,7 @@ import burp.api.montoya.core.ToolType
 import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.PersistenceContext
 import net.miginfocom.swing.MigLayout
+import java.awt.Color
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Window
@@ -369,12 +370,9 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         nameField.isEnabled = false
     }
 
-    private fun nameFieldKeyTyped(e: KeyEvent) {
+    private fun keyTyped(e: KeyEvent) {
         enableApply()
-    }
-
-    private fun matchFieldKeyTyped(e: KeyEvent) {
-        enableApply()
+        showError(" ")
     }
 
     private fun headerButtonItemStateChanged(e: ItemEvent) {
@@ -405,10 +403,20 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         val match = matchField.text
         val type = if (regexButton.isSelected) ItemType.REGEX else ItemType.HEADER
 
+        if (name == "") {
+            showError("Name field cannot be left blank!")
+            return false
+        }
+
+        if (match == "") {
+            showError("Match field cannot be left blank!")
+            return false
+        }
+
         if (index == -1) {
             val item = Item(match, type, "", true, 0, 0)
             if (itemStore.items[name] != null) {
-                // todo add error
+                showError("Entry named \"$name\" already exists!")
                 return false
             }
             itemStore.items[name] = item
@@ -437,6 +445,10 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
     }
 
+    private fun showError(err: String) {
+        errorLabel.text = err
+    }
+
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
         panel1 = JPanel()
@@ -448,6 +460,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         headerButton = JRadioButton()
         regexButton = JRadioButton()
         typeDescription = JLabel()
+        errorLabel = JLabel()
         panel3 = JPanel()
         okButton = JButton()
         applyButton = JButton()
@@ -463,7 +476,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
         nameField.addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
-                nameFieldKeyTyped(e)
+                this@AddEditDialog.keyTyped(e)
             }
         })
         panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
@@ -473,7 +486,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
 
         matchField.addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
-                matchFieldKeyTyped(e)
+                this@AddEditDialog.keyTyped(e)
             }
         })
         panel1.add(matchField, "cell 1 1,wmin 270,grow 0")
@@ -494,6 +507,10 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
         panel1.add(typeDescription, "cell 1 3")
 
         contentPane.add(panel1, "cell 0 0")
+
+        errorLabel.foreground = Color.RED
+        showError(" ")
+        contentPane.add(errorLabel, "cell 0 4")
 
         panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
 
@@ -532,6 +549,7 @@ class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: Item
     private lateinit var headerButton: JRadioButton
     private lateinit var regexButton: JRadioButton
     private lateinit var typeDescription: JLabel
+    private lateinit var errorLabel: JLabel
     private lateinit var panel3: JPanel
     private lateinit var okButton: JButton
     private lateinit var applyButton: JButton

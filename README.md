@@ -16,7 +16,7 @@ We set up a regex to watch for the value like so:
 ![Regex UI](https://nns.ee/vua/regex-ui.png)
 
 We receive a response to a request (via any enabled tool) that contains a new CSRF value:
-```http
+```
 HTTP/1.1 200 OK
 Set-Cookie: session=123; csrf=the_csrf_token
 ```

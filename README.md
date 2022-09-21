@@ -18,7 +18,7 @@ We set up a regex to watch for the value like so:
 We receive a response to a request (via any enabled tool) that contains a new CSRF value:
 ```
 HTTP/1.1 200 OK
-Set-Cookie: session=123; csrf=the_csrf_token
+Set-Cookie: csrf=the_csrf_token
 ```
 
 The stored value gets updated with the token we received in the response:

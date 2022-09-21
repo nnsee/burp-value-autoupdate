@@ -14,6 +14,7 @@ import java.awt.event.ItemEvent.SELECTED
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
+import javax.swing.event.ListSelectionEvent
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
@@ -171,6 +172,23 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         itemStore.save()
     }
 
+    private fun tableSelected(e: ListSelectionEvent) {
+        when (valuesTable.selectedRowCount) {
+            0 -> {
+                valueRemove.isEnabled = false
+                valueEdit.isEnabled = false
+            }
+            1 -> {
+                valueRemove.isEnabled = true
+                valueEdit.isEnabled = true
+            }
+            else -> {
+                valueRemove.isEnabled = true
+                valueEdit.isEnabled = false
+            }
+        }
+    }
+
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
         headerPanel = JPanel()
@@ -233,10 +251,12 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
         valueEdit.text = "Edit"
         valueEdit.addActionListener { e: ActionEvent -> valueEdit(e) }
+        valueEdit.isEnabled = false
         valueButtons.add(valueEdit, "cell 0 1")
 
         valueRemove.text = "Remove"
         valueRemove.addActionListener { e: ActionEvent -> valueRemove(e) }
+        valueRemove.isEnabled = false
         valueButtons.add(valueRemove, "cell 0 2")
 
         valueRefresh.text = "Refresh"
@@ -265,6 +285,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         cm.getColumn(0).preferredWidth = 25
         valuesTable.preferredScrollableViewportSize = Dimension(600, 300)
         (valuesTable.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
+        valuesTable.selectionModel.addListSelectionListener { e: ListSelectionEvent -> tableSelected(e) }
 
         valuesTablePanel.setViewportView(valuesTable)
         valueSelectorPanel.add(valuesTablePanel, "cell 1 0")

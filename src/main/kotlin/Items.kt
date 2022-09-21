@@ -1,10 +1,10 @@
 package burp
 
 import burp.api.montoya.persistence.PersistenceContext
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 const val ITEM_STORE = "itemStore"
 
@@ -33,7 +33,7 @@ class ItemStore(ctx: PersistenceContext) {
         this.items = load()
     }
 
-    private fun load() : Items {
+    private fun load(): Items {
         // loads and returns items from persistent storage
         var jsonStr = ctx.getString(ITEM_STORE) ?: "{}"
 

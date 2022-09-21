@@ -26,7 +26,16 @@ private fun reloadValuesTable(items: Items) {
     dtm.dataVector.removeAllElements()
 
     items.forEach {
-        dtm.addRow(arrayOf(it.value.enabled, it.key, it.value.match, it.value.lastMatch, it.value.matchCount, it.value.replaceCount))
+        dtm.addRow(
+            arrayOf(
+                it.value.enabled,
+                it.key,
+                it.value.match,
+                it.value.lastMatch,
+                it.value.matchCount,
+                it.value.replaceCount
+            )
+        )
     }
 
     dtm.fireTableDataChanged()
@@ -204,10 +213,12 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
                 valueRemove.isEnabled = false
                 valueEdit.isEnabled = false
             }
+
             1 -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = true
             }
+
             else -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = false
@@ -333,7 +344,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
 class AddEditDialog(owner: Window?, api: MontoyaApi, index: Int, itemStore: ItemStore) : JDialog(owner) {
     private val headerTypeHint = "Matches header names and replaces values "
-    private val regexTypeHint  = "Uses regex for matches (named group: val)"
+    private val regexTypeHint = "Uses regex for matches (named group: val)"
     private var index: Int
     private val itemStore: ItemStore
 

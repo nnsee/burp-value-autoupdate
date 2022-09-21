@@ -4,7 +4,7 @@ import burp.api.montoya.MontoyaApi
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 
-data class Response (var matched: Boolean, var contents: String)
+data class Response(var matched: Boolean, var contents: String)
 
 interface ReplaceStrategy {
     fun updateValue(request: String, match: String): Response
@@ -57,7 +57,7 @@ class HeaderStrategy : ReplaceStrategy {
     }
 }
 
-class Replacer (api: MontoyaApi, itemStore: ItemStore) {
+class Replacer(api: MontoyaApi, itemStore: ItemStore) {
     private val itemStore: ItemStore
     private val api: MontoyaApi
 
@@ -71,7 +71,7 @@ class Replacer (api: MontoyaApi, itemStore: ItemStore) {
         this.api = api
     }
 
-    fun handleRequest(request: String) : String {
+    fun handleRequest(request: String): String {
         // replaces values if necessary
         var needsSync = false
         var updatedRequest = request

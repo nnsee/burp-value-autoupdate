@@ -4,7 +4,18 @@ import burp.api.montoya.MontoyaApi
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 
+enum class ReplaceType {
+    REQUEST, RESPONSE
+}
+
 data class Response(var matched: Boolean, var contents: String)
+data class ReplacedValue(val old: String, val new: String)
+data class ReplaceResult(
+    var matched: Boolean,
+    var contents: String,
+    val type: ReplaceType,
+    var values: MutableList<ReplacedValue>
+)
 
 interface ReplaceStrategy {
     fun updateValue(request: String, match: String): Response
@@ -71,30 +82,30 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
         this.api = api
     }
 
-    fun handleRequest(request: String): String {
+    fun handleRequest(request: String): ReplaceResult {
         // replaces values if necessary
-        var needsSync = false
-        var updatedRequest = request
+        val result = ReplaceResult(false, request, ReplaceType.REQUEST, mutableListOf())
 
         itemStore.items.forEach {
             if (!it.value.enabled) return@forEach
-            val resp = strategies[it.value.type]?.matchAndReplace(updatedRequest, it.key, it.value.lastMatch)!!
+            val resp = strategies[it.value.type]?.matchAndReplace(result.contents, it.key, it.value.lastMatch)!!
 
             if (resp.matched) {
                 it.value.replaceCount += 1
-                updatedRequest = resp.contents
-                needsSync = true
+                result.contents = resp.contents
+                result.matched = true
+                result.values.add(ReplacedValue(it.key, it.value.lastMatch))
                 log.debug("Found placeholder for item: ${it.key}")
             }
         }
 
-        if (needsSync) itemStore.save()
-        return updatedRequest
+        if (result.matched) itemStore.save()
+        return result
     }
 
-    fun handleResponse(response: String) {
+    fun handleResponse(response: String): ReplaceResult {
         // updates last values in store
-        var needsSync = false
+        val result = ReplaceResult(false, "", ReplaceType.RESPONSE, mutableListOf())
 
         itemStore.items.forEach {
             if (!it.value.enabled) return@forEach
@@ -104,11 +115,13 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
                 if (resp.contents == it.value.lastMatch) return@forEach
                 it.value.matchCount += 1
                 it.value.lastMatch = resp.contents
-                needsSync = true
+                result.matched = true
+                result.values.add(ReplacedValue(it.key, resp.contents))
                 log.debug("Replaced value for: ${it.key}, new value ${resp.contents}")
             }
         }
 
-        if (needsSync) itemStore.save()
+        if (result.matched) itemStore.save()
+        return result
     }
 }

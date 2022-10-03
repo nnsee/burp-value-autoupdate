@@ -55,8 +55,7 @@ class BurpExtender : BurpExtension {
             request: HttpRequest, response: HttpResponse, annotations: MessageAnnotations, toolSource: ToolSource
         ): ResponseHandlerResult {
             if (!ui.isEnabled(toolSource.toolType())) return ResponseHandlerResult.from(
-                response,
-                MessageAnnotations.NONE
+                response, MessageAnnotations.NONE
             )
             val result = replacer.handleResponse(response.toString())
             return ResponseHandlerResult.from(response, constructAnnotations(result))

@@ -11,10 +11,7 @@ enum class ReplaceType {
 data class Response(var matched: Boolean, var contents: String)
 data class ReplacedValue(val old: String, val new: String)
 data class ReplaceResult(
-    var matched: Boolean,
-    var contents: String,
-    val type: ReplaceType,
-    var values: MutableList<ReplacedValue>
+    var matched: Boolean, var contents: String, val type: ReplaceType, var values: MutableList<ReplacedValue>
 )
 
 val regexCache = mutableMapOf<String, Pattern>()

@@ -17,6 +17,8 @@ data class ReplaceResult(
     var values: MutableList<ReplacedValue>
 )
 
+val regexCache = mutableMapOf<String, Pattern>()
+
 interface ReplaceStrategy {
     fun updateValue(request: String, match: String): Response
     fun matchAndReplace(request: String, key: String, value: String): Response {
@@ -34,15 +36,13 @@ interface ReplaceStrategy {
 class RegexStrategy : ReplaceStrategy {
     override fun updateValue(request: String, match: String): Response {
         val res = Response(false, "")
-        val pattern: Pattern
-        try {
-            pattern = Pattern.compile(match, Pattern.MULTILINE)
-        } catch (e: PatternSyntaxException) {
-            log.error("Invalid regex pattern: $match")
-            return res
+
+        if (match !in regexCache) {
+            log.debug("First time seeing pattern, compiling: $match")
+            regexCache[match] = Pattern.compile(match)
         }
 
-        val matcher = pattern.matcher(request)
+        val matcher = regexCache[match]!!.matcher(request)
 
         while (matcher.find()) {
             res.matched = true
@@ -124,4 +124,18 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
         if (result.matched) itemStore.save()
         return result
     }
+}
+
+fun checkRegexSyntax(re: String): String {
+    try {
+        val pattern = Pattern.compile(re, Pattern.MULTILINE)
+        // todo: figure out how to get named groups in patterns
+//      if ("val" !in pattern.toRegex()) {
+//          return "Named group `val` not found!"
+//      }
+    } catch (e: PatternSyntaxException) {
+        return "Regex pattern has syntax errors!"
+    }
+
+    return ""
 }

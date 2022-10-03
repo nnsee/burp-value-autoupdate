@@ -5,10 +5,7 @@ import burp.api.montoya.core.ToolType
 import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.PersistenceContext
 import net.miginfocom.swing.MigLayout
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.Font
-import java.awt.Window
+import java.awt.*
 import java.awt.event.ItemEvent
 import java.awt.event.ItemEvent.SELECTED
 import java.awt.event.KeyAdapter
@@ -18,6 +15,8 @@ import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.TableModelEvent
+import javax.swing.plaf.TabbedPaneUI
+import javax.swing.plaf.basic.BasicTabbedPaneUI
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
 
@@ -91,6 +90,17 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         initComponents()
         loadValuesFromStore()
         api.userInterface().registerSuiteTab("Value updater", this)
+//        Thread.sleep(1_000)
+//        log.debug(this.parent.toString())
+//        this.parent.components.forEach {
+//            if (it::class.simpleName == "TabContainer") {
+//                log.debug(it.toString())
+//                (it as JTabbedPane).components.reversed().forEach { comp ->
+//                    log.debug(comp.toString())
+//                }
+//                return@forEach
+//            }
+//        }
     }
 
     private fun loadValuesFromStore() {
@@ -428,6 +438,14 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
         if (match == "") {
             showError("Match field cannot be left blank!")
             return false
+        }
+
+        if (type == ItemType.REGEX) {
+            val err = checkRegexSyntax(match)
+            if (err != "") {
+                showError(err)
+                return false
+            }
         }
 
         if (index == -1) {

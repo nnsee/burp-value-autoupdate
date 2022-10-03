@@ -1,8 +1,8 @@
 package burp
 
 import burp.api.montoya.MontoyaApi
-import java.util.regex.Pattern
-import java.util.regex.PatternSyntaxException
+import com.google.re2j.Pattern
+import com.google.re2j.PatternSyntaxException
 
 enum class ReplaceType {
     REQUEST, RESPONSE
@@ -36,7 +36,7 @@ class RegexStrategy : ReplaceStrategy {
 
         if (match !in regexCache) {
             log.debug("First time seeing pattern, compiling: $match")
-            regexCache[match] = Pattern.compile(match)
+            regexCache[match] = Pattern.compile(match, Pattern.MULTILINE)
         }
 
         val matcher = regexCache[match]!!.matcher(request)
@@ -126,10 +126,9 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
 fun checkRegexSyntax(re: String): String {
     try {
         val pattern = Pattern.compile(re, Pattern.MULTILINE)
-        // todo: figure out how to get named groups in patterns
-//      if ("val" !in pattern.toRegex()) {
-//          return "Named group `val` not found!"
-//      }
+        if ("val" !in pattern.namedGroups()) {
+            return "Named group `val` not found!"
+        }
     } catch (e: PatternSyntaxException) {
         return "Regex pattern has syntax errors!"
     }

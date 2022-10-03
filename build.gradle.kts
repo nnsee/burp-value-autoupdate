@@ -7,7 +7,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
-group = "ee.nns"
+group = "ee.nns.updater"
 version = "0.0.1"
 
 repositories {
@@ -18,6 +18,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.20")
     implementation("com.miglayout:miglayout-swing:11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
+    implementation("com.google.re2j:re2j:1.7")
     api("net.portswigger.burp.extender:montoya-api:0.9.5.1")
 }
 

@@ -34,6 +34,8 @@ Cookie: csrf=$csrf$; session=123
 
 Regex matching (and placing values) works in any part of the request, not just the headers.
 
+The regex matcher uses the [re2 syntax](https://github.com/google/re2/wiki/Syntax).
+
 ### Installation
 
 Currently, no `.jar` files are provided. Once I feel this project is polished enough to publish releases for, I will probably upload this to the Burp App store.

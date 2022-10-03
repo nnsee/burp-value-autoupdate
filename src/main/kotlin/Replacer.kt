@@ -92,6 +92,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
                 result.contents = resp.contents
                 result.matched = true
                 result.values.add(ReplacedValue(it.key, it.value.lastMatch))
+                replaced(it.key, it.value.replaceCount)
                 log.debug("Found placeholder for item: ${it.key}")
             }
         }
@@ -114,6 +115,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
                 it.value.lastMatch = resp.contents
                 result.matched = true
                 result.values.add(ReplacedValue(it.key, resp.contents))
+                updated(it.key, resp.contents, it.value.matchCount)
                 log.debug("Replaced value for: ${it.key}, new value ${resp.contents}")
             }
         }

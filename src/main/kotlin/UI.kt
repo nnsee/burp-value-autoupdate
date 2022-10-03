@@ -22,9 +22,25 @@ import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
 
 val VALUES_TABLE = JTable()
+const val TAB_NAME = "Value updater"
+var namedRows = mapOf<String, Int>()
+
+fun updated(name: String, value: String, count: Int) {
+    val dtm = VALUES_TABLE.model as DefaultTableModel
+    namedRows[name]?.let {
+        dtm.setValueAt(value, it, 3)
+        dtm.setValueAt(count, it, 4)
+    }
+}
+
+fun replaced(name: String, count: Int) {
+    val dtm = VALUES_TABLE.model as DefaultTableModel
+    namedRows[name]?.let { dtm.setValueAt(count, it, 5) }
+}
 
 private fun reloadValuesTable(items: Items) {
     val dtm = VALUES_TABLE.model as DefaultTableModel
+    val tmpMap = mutableMapOf<String, Int>()
     dtm.dataVector.removeAllElements()
 
     items.forEach {
@@ -33,9 +49,11 @@ private fun reloadValuesTable(items: Items) {
                 it.value.enabled, it.key, it.value.match, it.value.lastMatch, it.value.matchCount, it.value.replaceCount
             )
         )
+        tmpMap[it.key] = dtm.rowCount - 1
     }
 
     dtm.fireTableDataChanged()
+    namedRows = tmpMap
 }
 
 private fun rowToName(row: Int): String {
@@ -70,7 +88,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
     private val valueAdd = JButton()
     private val valueEdit = JButton()
     private val valueRemove = JButton()
-    private val valueRefresh = JButton()
     private val valuesTablePanel = JScrollPane()
     private val valuesTable = VALUES_TABLE
     private val separator1 = JSeparator()
@@ -90,18 +107,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         this.itemStore = itemStore
         initComponents()
         loadValuesFromStore()
-        api.userInterface().registerSuiteTab("Value updater", this)
-//        Thread.sleep(1_000)
-//        log.debug(this.parent.toString())
-//        this.parent.components.forEach {
-//            if (it::class.simpleName == "TabContainer") {
-//                log.debug(it.toString())
-//                (it as JTabbedPane).components.reversed().forEach { comp ->
-//                    log.debug(comp.toString())
-//                }
-//                return@forEach
-//            }
-//        }
+        api.userInterface().registerSuiteTab(TAB_NAME, this)
     }
 
     private fun loadValuesFromStore() {
@@ -162,10 +168,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
         itemStore.save()
 
-        reloadValuesTable(itemStore.items)
-    }
-
-    private fun valueRefresh() {
         reloadValuesTable(itemStore.items)
     }
 
@@ -277,9 +279,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         valueRemove.isEnabled = false
         valueButtons.add(valueRemove, "cell 0 2")
 
-        valueRefresh.text = "Refresh"
-        valueRefresh.addActionListener { valueRefresh() }
-        valueButtons.add(valueRefresh, "cell 0 3")
         valueSelectorPanel.add(valueButtons, "cell 0 0,aligny top,growy 0")
 
         valuesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)

@@ -9,11 +9,8 @@ import java.awt.Color
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Window
-import java.awt.event.ItemEvent
+import java.awt.event.*
 import java.awt.event.ItemEvent.SELECTED
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.WindowEvent
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
@@ -23,9 +20,11 @@ import javax.swing.table.TableModel
 
 val VALUES_TABLE = JTable()
 const val TAB_NAME = "Value updater"
+var TAB_VISIBLE = false
 var namedRows = mapOf<String, Int>()
 
 fun updated(name: String, value: String, count: Int) {
+    if (!TAB_VISIBLE) return
     val dtm = VALUES_TABLE.model as DefaultTableModel
     namedRows[name]?.let {
         dtm.setValueAt(value, it, 3)
@@ -34,6 +33,7 @@ fun updated(name: String, value: String, count: Int) {
 }
 
 fun replaced(name: String, count: Int) {
+    if (!TAB_VISIBLE) return
     val dtm = VALUES_TABLE.model as DefaultTableModel
     namedRows[name]?.let { dtm.setValueAt(count, it, 5) }
 }
@@ -108,6 +108,16 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         initComponents()
         loadValuesFromStore()
         api.userInterface().registerSuiteTab(TAB_NAME, this)
+        this.addComponentListener(object : ComponentAdapter() {
+            override fun componentShown(e: ComponentEvent?) {
+                TAB_VISIBLE = true
+                reloadValuesTable(itemStore.items)
+            }
+
+            override fun componentHidden(e: ComponentEvent?) {
+                TAB_VISIBLE = false
+            }
+        })
     }
 
     private fun loadValuesFromStore() {

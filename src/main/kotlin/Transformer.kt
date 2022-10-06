@@ -17,12 +17,9 @@ const val TRANSFORMER_STORE = "transformerStore"
 fun initTransformerBundle(): Value? {
     DONE_LIB_INIT = true
     val context = Context.newBuilder("js")
-        .allowIO(true)
         .allowExperimentalOptions(true)
         .option("js.esm-eval-returns-exports", "true")
         .build()
-//    val src = "import * as Lib from \"/home/xx/Projects/transformerHook/bundle.mjs\";" + "Lib;"
-//    InputStreamReader(it)
     val resource = object {}.javaClass.classLoader.getResourceAsStream("bundle.mjs")
     if (resource == null) {
         log.error("Failed to load bundled JavaScript libraries!")

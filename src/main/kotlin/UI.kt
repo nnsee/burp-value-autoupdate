@@ -142,6 +142,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     private val transformerRemove = JButton()
     private val transformerTablePanel = JScrollPane()
     private val transformerTable = TRANSFORMER_TABLE
+    private val transformerEditorPanel = JPanel()
     private val transformerEditor = api.userInterface().createRawEditor()
     private val transformerEditorSave = JButton()
 
@@ -253,6 +254,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerStore.transformers[rowToTName(transformerTable.selectedRow)]?.code =
             transformerEditor.contents.toString(UTF_8)
         transformerStore.save()
+
+        transformerEditorSave.isEnabled = false
     }
 
     private fun enabledToggle(e: ItemEvent) {
@@ -321,18 +324,27 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun transformerSelected() {
+        transformerEditorSave.isEnabled = false
+
         when (transformerTable.selectedRowCount) {
             0 -> {
                 transformerRemove.isEnabled = false
-                transformerEditorSave.isEnabled = false
+                transformerEditor.contents = "".toByteArray(UTF_8)
+                transformerEditor.setEditable(false)
             }
 
             else -> {
                 transformerRemove.isEnabled = true
-                transformerEditorSave.isEnabled = true
                 transformerEditor.contents =
                     transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!.code.toByteArray(UTF_8)
+                transformerEditor.setEditable(true)
             }
+        }
+    }
+
+    private fun editorTyped() {
+        if (transformerTable.selectedRowCount != 0) {
+            transformerEditorSave.isEnabled = true
         }
     }
 
@@ -453,7 +465,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
 
         transformerSelectorPanel.layout = MigLayout("hidemode 3", "[fill][fill]", "[]")
 
-        transformerButtons.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
+        transformerButtons.layout = MigLayout("hidemode 3", "[fill]", "[][]")
 
         transformerAdd.text = "Add"
         transformerAdd.addActionListener { transformerAdd() }
@@ -464,12 +476,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerRemove.isEnabled = false
         transformerButtons.add(transformerRemove, "cell 0 1")
 
-        transformerEditorSave.text = "Save"
-        transformerEditorSave.addActionListener { transformerSave() }
-        transformerEditorSave.isEnabled = true
-        transformerButtons.add(transformerEditorSave, "dock south")
-
-        transformerSelectorPanel.add(transformerButtons, "cell 0 0,aligny top,growy 0")
+        transformerSelectorPanel.add(transformerButtons, "cell 0 0,aligny top,growy")
 
         transformerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
         transformerTable.model = object : DefaultTableModel(
@@ -482,7 +489,38 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerTablePanel.setViewportView(transformerTable)
         transformerSelectorPanel.add(transformerTablePanel, "cell 1 0,grow,push,span")
         rightPanel.add(transformerSelectorPanel, "cell 0 1")
-        rightPanel.add(transformerEditor.uiComponent(), "cell 0 2,grow,push,span")
+
+        transformerEditorPanel.layout = MigLayout("hidemode 3", "[]", "[][]")
+        transformerEditor.setEditable(false)
+
+        transformerEditorSave.text = "Save"
+        transformerEditorSave.addActionListener { transformerSave() }
+        transformerEditorSave.isEnabled = false
+        transformerEditorPanel.add(transformerEditorSave, "cell 0 0")
+
+        transformerEditor.uiComponent().components.forEach top@{
+            it?.let {
+                if (it.name == "messageEditor") {
+                    (it as JScrollPane).components.forEach { child ->
+                        if (child is JViewport) {
+                            child.components.forEach { candidate ->
+                                if (candidate.name == "syntaxTextArea") {
+                                    (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
+                                        override fun keyTyped(e: KeyEvent) {
+                                            this@UI.editorTyped()
+                                        }
+                                    })
+                                    return@top
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        transformerEditorPanel.add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
+        rightPanel.add(transformerEditorPanel, "cell 0 2,grow,push,span")
         add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
     }
 

@@ -8,18 +8,35 @@ import kotlinx.serialization.json.Json
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.Source
 import org.graalvm.polyglot.Value
+import java.io.InputStreamReader
 
-val LIB = initLib()
+var LIB: Value? = null
+var DONE_LIB_INIT = false
 const val TRANSFORMER_STORE = "transformerStore"
 
-fun initLib(): Value? {
-    val context = Context.newBuilder("js").allowIO(true).build()
-    val src = "import * as Lib from \"/home/xx/Projects/transformerHook/bundle.mjs\";" + "Lib;"
+fun initTransformerBundle(): Value? {
+    DONE_LIB_INIT = true
+    val context = Context.newBuilder("js")
+        .allowIO(true)
+        .allowExperimentalOptions(true)
+        .option("js.esm-eval-returns-exports", "true")
+        .build()
+//    val src = "import * as Lib from \"/home/xx/Projects/transformerHook/bundle.mjs\";" + "Lib;"
+//    InputStreamReader(it)
+    val resource = object {}.javaClass.classLoader.getResourceAsStream("bundle.mjs")
+    if (resource == null) {
+        log.error("Failed to load bundled JavaScript libraries!")
+        return null
+    }
+    val src = InputStreamReader(resource)
     val source = Source.newBuilder("js", src, "lib.mjs").build()
     return context.eval(source)
 }
 
 fun evalTransformer(value: String, transformer: Transformer): String {
+    if (!DONE_LIB_INIT) {
+        LIB = initTransformerBundle()
+    }
     val context = Context.create()
     val bindings = context.getBindings("js")
     var res = value

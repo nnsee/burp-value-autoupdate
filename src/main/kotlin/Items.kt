@@ -20,6 +20,7 @@ data class Item(
     var enabled: Boolean,
     var matchCount: Int,
     var replaceCount: Int,
+    var transformer: String,
 )
 
 typealias Items = MutableMap<String, Item> // name -> item

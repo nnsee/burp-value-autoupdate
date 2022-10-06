@@ -18,11 +18,17 @@ val regexCache = mutableMapOf<String, Pattern>()
 
 interface ReplaceStrategy {
     fun updateValue(request: String, match: String): Response
-    fun matchAndReplace(request: String, key: String, value: String): Response {
+    fun matchAndReplace(request: String, key: String, item: Item, transformerStore: TransformerStore): Response {
         val res = Response(false, "")
 
         if (request.contains("\$$key\$")) {
             res.matched = true
+            var value = item.lastMatch
+            if (item.transformer != "") {
+                transformerStore.transformers[item.transformer]?.let {
+                    value = evalTransformer(value, it)
+                }
+            }
             res.contents = request.replace("\$$key\$", value)
         }
 
@@ -65,8 +71,9 @@ class HeaderStrategy : ReplaceStrategy {
     }
 }
 
-class Replacer(api: MontoyaApi, itemStore: ItemStore) {
+class Replacer(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerStore) {
     private val itemStore: ItemStore
+    private val transformerStore: TransformerStore
     private val api: MontoyaApi
 
     private val strategies: Map<ItemType, ReplaceStrategy> = mapOf(
@@ -76,6 +83,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
 
     init {
         this.itemStore = itemStore
+        this.transformerStore = transformerStore
         this.api = api
     }
 
@@ -85,7 +93,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore) {
 
         itemStore.items.forEach {
             if (!it.value.enabled) return@forEach
-            val resp = strategies[it.value.type]?.matchAndReplace(result.contents, it.key, it.value.lastMatch)!!
+            val resp = strategies[it.value.type]?.matchAndReplace(result.contents, it.key, it.value, transformerStore)!!
 
             if (resp.matched) {
                 it.value.replaceCount += 1

@@ -6,7 +6,6 @@ import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.PersistenceContext
 import net.miginfocom.swing.MigLayout
 import java.awt.Color
-import java.awt.Dimension
 import java.awt.Font
 import java.awt.Window
 import java.awt.event.*
@@ -17,11 +16,14 @@ import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
+import kotlin.text.Charsets.UTF_8
 
 val VALUES_TABLE = JTable()
+val TRANSFORMER_TABLE = JTable()
 const val TAB_NAME = "Value updater"
 var TAB_VISIBLE = false
 var namedRows = mapOf<String, Int>()
+var namedTRows = mapOf<String, Int>()
 
 fun updated(name: String, value: String, count: Int) {
     if (!TAB_VISIBLE) return
@@ -46,7 +48,13 @@ private fun reloadValuesTable(items: Items) {
     items.forEach {
         dtm.addRow(
             arrayOf(
-                it.value.enabled, it.key, it.value.match, it.value.lastMatch, it.value.matchCount, it.value.replaceCount
+                it.value.enabled,
+                it.key,
+                it.value.match,
+                it.value.lastMatch,
+                it.value.matchCount,
+                it.value.replaceCount,
+                it.value.transformer
             )
         )
         tmpMap[it.key] = dtm.rowCount - 1
@@ -56,16 +64,41 @@ private fun reloadValuesTable(items: Items) {
     namedRows = tmpMap
 }
 
+private fun reloadTransformersTable(transformers: Transformers) {
+    val dtm = TRANSFORMER_TABLE.model as DefaultTableModel
+    val tmpMap = mutableMapOf<String, Int>()
+    dtm.dataVector.removeAllElements()
+
+    transformers.forEach {
+        dtm.addRow(
+            arrayOf(
+                it.key
+            )
+        )
+        tmpMap[it.key] = dtm.rowCount - 1
+    }
+
+    dtm.fireTableDataChanged()
+    namedTRows = tmpMap
+}
+
 private fun rowToName(row: Int): String {
     val dtm = VALUES_TABLE.model
 
     return dtm.getValueAt(row, 1).toString()
 }
 
-class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
+private fun rowToTName(row: Int): String {
+    val dtm = TRANSFORMER_TABLE.model
+
+    return dtm.getValueAt(row, 0).toString()
+}
+
+class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerStore) : JPanel() {
     private val api: MontoyaApi
     private val ctx: PersistenceContext
     private val itemStore: ItemStore
+    private val transformerStore: TransformerStore
     private var extEnabled = true
     private var enabledTools = mutableMapOf(
         PROXY to true,
@@ -77,6 +110,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
     )
 
     private val headerPanel = JPanel()
+    private val leftPanel = JPanel()
+    private val rightPanel = JPanel()
     private val mainLabel = JLabel()
     private val headerNestedPanel = JPanel()
     private val enabledToggle = JCheckBox()
@@ -100,11 +135,21 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
     private val repeaterSel = JCheckBox()
     private val sequencerSel = JCheckBox()
     private val extenderSel = JCheckBox()
+    private val transformerLabel = JLabel()
+    private val transformerSelectorPanel = JPanel()
+    private val transformerButtons = JPanel()
+    private val transformerAdd = JButton()
+    private val transformerRemove = JButton()
+    private val transformerTablePanel = JScrollPane()
+    private val transformerTable = TRANSFORMER_TABLE
+    private val transformerEditor = api.userInterface().createRawEditor()
+    private val transformerEditorSave = JButton()
 
     init {
         this.api = api
         this.ctx = api.persistence().userContext()
         this.itemStore = itemStore
+        this.transformerStore = transformerStore
         initComponents()
         loadValuesFromStore()
         api.userInterface().registerSuiteTab(TAB_NAME, this)
@@ -118,6 +163,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
                 TAB_VISIBLE = false
             }
         })
+
     }
 
     private fun loadValuesFromStore() {
@@ -138,6 +184,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         extenderSel.isSelected = enabledTools[EXTENDER]!!
 
         reloadValuesTable(itemStore.items)
+        reloadTransformersTable(transformerStore.transformers)
     }
 
 
@@ -146,8 +193,14 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
     }
 
     private fun valueAdd() {
-        val window = AddEditDialog(getWindowAncestor(this), -1, itemStore)
+        val window = AddEditDialog(getWindowAncestor(this), -1, itemStore, transformerStore)
         window.title = "Add value"
+        window.isVisible = true
+    }
+
+    private fun transformerAdd() {
+        val window = TransformerAddDialog(getWindowAncestor(this), transformerStore)
+        window.title = "Add transformer"
         window.isVisible = true
     }
 
@@ -163,7 +216,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
 
         val index = valuesTable.selectedRows[0]
 
-        val window = AddEditDialog(getWindowAncestor(this), index, itemStore)
+        val window = AddEditDialog(getWindowAncestor(this), index, itemStore, transformerStore)
         window.title = "Edit value"
         window.isVisible = true
     }
@@ -179,6 +232,27 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         itemStore.save()
 
         reloadValuesTable(itemStore.items)
+    }
+
+    private fun transformerRemove() {
+        val selectedRows = transformerTable.selectedRows
+        TRANSFORMER_TABLE.clearSelection() // visual bug work around
+
+        if (selectedRows.isEmpty()) return
+
+        transformerStore.transformers.remove(rowToTName(selectedRows[0]))
+
+        transformerStore.save()
+
+        transformerEditor.contents = "".toByteArray(UTF_8)
+
+        reloadTransformersTable(transformerStore.transformers)
+    }
+
+    private fun transformerSave() {
+        transformerStore.transformers[rowToTName(transformerTable.selectedRow)]?.code =
+            transformerEditor.contents.toString(UTF_8)
+        transformerStore.save()
     }
 
     private fun enabledToggle(e: ItemEvent) {
@@ -246,9 +320,27 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         }
     }
 
+    private fun transformerSelected() {
+        when (transformerTable.selectedRowCount) {
+            0 -> {
+                transformerRemove.isEnabled = false
+                transformerEditorSave.isEnabled = false
+            }
+
+            else -> {
+                transformerRemove.isEnabled = true
+                transformerEditorSave.isEnabled = true
+                transformerEditor.contents =
+                    transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!.code.toByteArray(UTF_8)
+            }
+        }
+    }
+
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
-        layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][][]")
+        layout = MigLayout("fill,hidemode 3,align center top", "fill")
+        leftPanel.layout = MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][][][]")
+        rightPanel.layout = MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][]")
 
         headerPanel.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
 
@@ -262,8 +354,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         enabledToggle.addItemListener { e: ItemEvent -> enabledToggle(e) }
         headerNestedPanel.add(enabledToggle, "cell 0 0")
         headerPanel.add(headerNestedPanel, "cell 0 1")
-        add(headerPanel, "cell 0 0")
-        add(separator2, "cell 0 1")
+        leftPanel.add(headerPanel, "cell 0 0")
+        leftPanel.add(separator2, "cell 0 1")
 
         valuesPanel.layout = MigLayout("hidemode 3", "[fill]", "[][][][]")
 
@@ -294,7 +386,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         valuesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
         valuesTable.model = object : DefaultTableModel(
             arrayOf(), arrayOf(
-                "", "Name", "Match", "Last value", "Times updated", "Times replaced"
+                "", "Name", "Match", "Last value", "Times updated", "Times replaced", "Transformer"
             )
         ) {
             override fun getColumnClass(columnIndex: Int): Class<*> {
@@ -309,16 +401,15 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         }
         val cm = valuesTable.columnModel
         cm.getColumn(0).resizable = false
-        cm.getColumn(0).preferredWidth = 25
-        valuesTable.preferredScrollableViewportSize = Dimension(600, 300)
+        cm.getColumn(0).width = 25
         (valuesTable.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         valuesTable.selectionModel.addListSelectionListener { tableSelected() }
 
         valuesTablePanel.setViewportView(valuesTable)
-        valueSelectorPanel.add(valuesTablePanel, "cell 1 0")
-        valuesPanel.add(valueSelectorPanel, "cell 0 2")
-        add(valuesPanel, "cell 0 2")
-        add(separator1, "cell 0 3")
+        valueSelectorPanel.add(valuesTablePanel, "cell 1 0,grow,push,span")
+        valuesPanel.add(valueSelectorPanel, "cell 0 2,grow,push,span")
+        leftPanel.add(valuesPanel, "cell 0 2")
+        leftPanel.add(separator1, "cell 0 3")
 
         toolsPanel.layout = MigLayout("hidemode 3", "[fill]", "[][]")
 
@@ -353,17 +444,58 @@ class UI(api: MontoyaApi, itemStore: ItemStore) : JPanel() {
         toolSelectionPanel.add(extenderSel, "cell 2 1")
 
         toolsPanel.add(toolSelectionPanel, "cell 0 1")
-        add(toolsPanel, "cell 0 4")
+        leftPanel.add(toolsPanel, "cell 0 4")
+
+        add(leftPanel, "w 50%,aligny top,growy 0,growx")
+        transformerLabel.text = "Value Transformers"
+        transformerLabel.font = transformerLabel.font.deriveFont(transformerLabel.font.style or Font.BOLD)
+        rightPanel.add(transformerLabel, "cell 0 0")
+
+        transformerSelectorPanel.layout = MigLayout("hidemode 3", "[fill][fill]", "[]")
+
+        transformerButtons.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
+
+        transformerAdd.text = "Add"
+        transformerAdd.addActionListener { transformerAdd() }
+        transformerButtons.add(transformerAdd, "cell 0 0")
+
+        transformerRemove.text = "Remove"
+        transformerRemove.addActionListener { transformerRemove() }
+        transformerRemove.isEnabled = false
+        transformerButtons.add(transformerRemove, "cell 0 1")
+
+        transformerEditorSave.text = "Save"
+        transformerEditorSave.addActionListener { transformerSave() }
+        transformerEditorSave.isEnabled = true
+        transformerButtons.add(transformerEditorSave, "dock south")
+
+        transformerSelectorPanel.add(transformerButtons, "cell 0 0,aligny top,growy 0")
+
+        transformerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+        transformerTable.model = object : DefaultTableModel(
+            arrayOf(), arrayOf(
+                "Name"
+            )
+        ) {}
+        transformerTable.selectionModel.addListSelectionListener { transformerSelected() }
+
+        transformerTablePanel.setViewportView(transformerTable)
+        transformerSelectorPanel.add(transformerTablePanel, "cell 1 0,grow,push,span")
+        rightPanel.add(transformerSelectorPanel, "cell 0 1")
+        rightPanel.add(transformerEditor.uiComponent(), "cell 0 2,grow,push,span")
+        add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
     }
 
     //</editor-fold>
 }
 
-class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(owner) {
+class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transformerStore: TransformerStore) :
+    JDialog(owner) {
     private val headerTypeHint = "Matches header names and replaces values "
     private val regexTypeHint = "Uses regex for matches (named group: val)"
     private var index: Int
     private val itemStore: ItemStore
+    private val transformerStore: TransformerStore
 
     private val panel1 = JPanel()
     private val nameLabel = JLabel()
@@ -374,6 +506,8 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
     private val headerButton = JRadioButton()
     private val regexButton = JRadioButton()
     private val typeDescription = JLabel()
+    private val transformerLabel = JLabel()
+    private val transformerComboBox = JComboBox<String>()
     private val errorLabel = JLabel()
     private val panel3 = JPanel()
     private val okButton = JButton()
@@ -383,11 +517,22 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
     init {
         this.index = index
         this.itemStore = itemStore
+        this.transformerStore = transformerStore
         initComponents()
+        loadTransformers()
         if (index != -1) {
             loadStoredValues()
         }
         this.defaultCloseOperation = DISPOSE_ON_CLOSE
+    }
+
+
+    private fun loadTransformers() {
+        transformerComboBox.addItem("")
+        transformerStore.transformers.forEach {
+            transformerComboBox.addItem(it.key)
+        }
+        transformerComboBox.selectedIndex = 0
     }
 
     private fun loadStoredValues() {
@@ -403,6 +548,8 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
             ItemType.HEADER -> headerButton.isSelected = true
             ItemType.REGEX -> regexButton.isSelected = true
         }
+
+        transformerComboBox.selectedItem = item.transformer
 
         nameField.isEnabled = false
     }
@@ -439,6 +586,7 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
         val name = nameField.text
         val match = matchField.text
         val type = if (regexButton.isSelected) ItemType.REGEX else ItemType.HEADER
+        val transformer = transformerComboBox.selectedItem as String
 
         if (name == "") {
             showError("Name field cannot be left blank!")
@@ -459,7 +607,7 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
         }
 
         if (index == -1) {
-            val item = Item(match, type, "", true, 0, 0)
+            val item = Item(match, type, "", true, 0, 0, transformer)
             if (itemStore.items[name] != null) {
                 showError("Entry named \"$name\" already exists!")
                 return false
@@ -475,6 +623,7 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
             }
             item.match = match
             item.type = type
+            item.transformer = transformer
             log.debug("Edited item at index $index: $item")
         }
 
@@ -496,7 +645,6 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
 
     //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
-        val contentPane = contentPane
         contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
 
         panel1.layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][]")
@@ -536,6 +684,11 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
         typeDescription.text = headerTypeHint
         panel1.add(typeDescription, "cell 1 3")
 
+        transformerLabel.text = "Transformer"
+        panel1.add(transformerLabel, "cell 0 4")
+
+        panel1.add(transformerComboBox, "cell 1 4")
+
         contentPane.add(panel1, "cell 0 0")
 
         errorLabel.foreground = Color.RED
@@ -563,6 +716,103 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore) : JDialog(
         val buttonGroup1 = ButtonGroup()
         buttonGroup1.add(headerButton)
         buttonGroup1.add(regexButton)
+
+        setSize(250, 100)
+        isResizable = false
+        pack()
+        setLocationRelativeTo(owner)
+    }
+    //</editor-fold>
+}
+
+class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) : JDialog(owner) {
+    private val transformerStore: TransformerStore
+
+    private val panel1 = JPanel()
+    private val nameLabel = JLabel()
+    private val nameField = JTextField()
+    private val errorLabel = JLabel()
+    private val panel3 = JPanel()
+    private val okButton = JButton()
+    private val cancelButton = JButton()
+
+    init {
+        this.transformerStore = transformerStore
+        initComponents()
+        this.defaultCloseOperation = DISPOSE_ON_CLOSE
+    }
+
+    private fun keyTyped() {
+        showError(" ")
+    }
+
+    private fun ok() {
+        if (apply()) this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
+    }
+
+    private fun apply(): Boolean {
+        val name = nameField.text
+
+        if (name == "") {
+            showError("Name field cannot be left blank!")
+            return false
+        }
+
+        val transformer = Transformer("", "")
+        if (transformerStore.transformers[name] != null) {
+            showError("Transformer named \"$name\" already exists!")
+            return false
+        }
+        transformerStore.transformers[name] = transformer
+
+        transformerStore.save()
+        reloadTransformersTable(transformerStore.transformers)
+
+        return true
+    }
+
+    private fun cancel() {
+        this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
+    }
+
+    private fun showError(err: String) {
+        errorLabel.text = err
+    }
+
+    //<editor-fold desc="UI layout cruft">
+    private fun initComponents() {
+        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+
+        panel1.layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][]")
+
+        nameLabel.text = "Name"
+        panel1.add(nameLabel, "cell 0 0")
+
+        nameField.addKeyListener(object : KeyAdapter() {
+            override fun keyTyped(e: KeyEvent) {
+                this@TransformerAddDialog.keyTyped()
+            }
+        })
+        panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
+
+        contentPane.add(panel1, "cell 0 0")
+
+        errorLabel.foreground = Color.RED
+        showError(" ")
+        contentPane.add(errorLabel, "cell 0 4")
+
+        panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
+
+        okButton.text = "OK"
+        okButton.background = UIManager.getColor("Button.background")
+        okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
+        okButton.addActionListener { ok() }
+        panel3.add(okButton, "west,gapx null 10")
+
+        cancelButton.text = "Cancel"
+        cancelButton.addActionListener { cancel() }
+        panel3.add(cancelButton, "EAST")
+        contentPane.add(panel3, "cell 0 5")
 
         setSize(250, 100)
         isResizable = false

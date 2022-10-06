@@ -19,7 +19,7 @@ dependencies {
     implementation("com.miglayout:miglayout-swing:11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
     implementation("com.google.re2j:re2j:1.7")
-    api("net.portswigger.burp.extender:montoya-api:0.9.5.1")
+    api("net.portswigger.burp.extender:montoya-api:0.9.25")
 }
 
 tasks.withType<KotlinCompile> {

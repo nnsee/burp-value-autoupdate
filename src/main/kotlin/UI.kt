@@ -499,20 +499,16 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerEditorPanel.add(transformerEditorSave, "cell 0 0")
 
         transformerEditor.uiComponent().components.forEach top@{
-            it?.let {
-                if (it.name == "messageEditor") {
-                    (it as JScrollPane).components.forEach { child ->
-                        if (child is JViewport) {
-                            child.components.forEach { candidate ->
-                                if (candidate.name == "syntaxTextArea") {
-                                    (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
-                                        override fun keyTyped(e: KeyEvent) {
-                                            this@UI.editorTyped()
-                                        }
-                                    })
-                                    return@top
+            if (it != null && it.name == "messageEditor") {
+                (it as JScrollPane).components.filterIsInstance<JViewport>().forEach { child ->
+                    child.components.forEach { candidate ->
+                        if (candidate.name == "syntaxTextArea") {
+                            (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
+                                override fun keyTyped(e: KeyEvent) {
+                                    this@UI.editorTyped()
                                 }
-                            }
+                            })
+                            return@top
                         }
                     }
                 }

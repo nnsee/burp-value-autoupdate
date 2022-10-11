@@ -2,6 +2,7 @@ pipeline:
   build:
     image: openjdk:11-jdk
     pull: true
-    commands: ./gradlew shadowJar
+    commands:
+      - ./gradlew shadowJar
 
 branches: master

@@ -1,6 +1,6 @@
 pipeline:
   build:
-    image: openjdk:11-jdk
+    image: eclipse-temurin:11-jdk
     pull: true
     commands:
       - ./gradlew shadowJar

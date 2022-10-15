@@ -5,7 +5,7 @@ pipeline:
     image: eclipse-temurin:11-jdk
     pull: true
     commands:
-      - ./gradlew shadowJar
+      - ./gradlew --no-daemon shadowJar
 
   deploy:
     image: appleboy/drone-scp

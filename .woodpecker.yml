@@ -23,5 +23,7 @@ pipeline:
         from_secret: ssh_key_passphrase
     source: build/libs/burp-value-autoupdate-*-all.jar
     target: ci/burp-value-autoupdate/
+    overwrite: true
+    strip_components: 2
 
 branches: master

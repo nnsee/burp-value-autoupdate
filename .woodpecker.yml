@@ -7,4 +7,20 @@ pipeline:
     commands:
       - ./gradlew shadowJar
 
+  deploy:
+    image: drillster/drone-rsync
+    pull: true
+    settings:
+      hosts:
+        from_secret: ssh_host
+      port:
+        from_secret: ssh_port
+      user:
+        from_secret: ssh_user
+      key:
+        from_secret: ssh_key
+    source: build/libs/burp-value-autoupdate-*-all.jar
+    target: ci/burp-value-autoupdate/
+    args: "--mkpath"
+
 branches: master

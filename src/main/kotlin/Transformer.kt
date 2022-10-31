@@ -5,9 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.Source
-import org.graalvm.polyglot.Value
+import org.graalvm.polyglot.*
 import java.io.InputStreamReader
 
 var LIB: Value? = null
@@ -18,7 +16,6 @@ fun initTransformerBundle(): Value? {
     DONE_LIB_INIT = true
     val pluginClassLoader = object {}.javaClass.classLoader
     val context = Context.newBuilder("js")
-//        .hostClassLoader(pluginClassLoader)
         .allowExperimentalOptions(true)
         .option("js.esm-eval-returns-exports", "true")
         .build()

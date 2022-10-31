@@ -39,7 +39,12 @@ tasks.withType<ShadowJar> {
     exclude("**/*.kotlin_module")
     exclude("META-INF/maven/**")
 
-    minimize()
+    minimize {
+        exclude(dependency("org.graalvm.truffle:.*"))
+        exclude(dependency("org.graalvm.js:.*"))
+    }
+
+    mergeServiceFiles()
 
     dependencies {
         exclude(dependency("net.portswigger.burp.extender:montoya-api:.*"))

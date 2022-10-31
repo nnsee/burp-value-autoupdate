@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "ee.nns.updater"
-version = "0.0.1"
+version = "0.1.0"
 
 graal {
     version = "22.3.0"

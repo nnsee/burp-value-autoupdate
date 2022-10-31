@@ -12,7 +12,7 @@ group = "ee.nns.updater"
 version = "0.0.1"
 
 graal {
-    version = "22.2.0"
+    version = "22.3.0"
 }
 
 repositories {
@@ -24,9 +24,9 @@ dependencies {
     implementation("com.miglayout:miglayout-swing:11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
     implementation("com.google.re2j:re2j:1.7")
-    implementation("org.graalvm.sdk:graal-sdk:22.2.0")
-    implementation("org.graalvm.truffle:truffle-api:22.2.0")
-    implementation("org.graalvm.js:js:22.2.0")
+    implementation("org.graalvm.sdk:graal-sdk:22.3.0")
+    implementation("org.graalvm.truffle:truffle-api:22.3.0")
+    implementation("org.graalvm.js:js:22.3.0")
     api("net.portswigger.burp.extender:montoya-api:0.9.25")
 }
 

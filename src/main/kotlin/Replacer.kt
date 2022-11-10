@@ -29,7 +29,7 @@ interface ReplaceStrategy {
                     value = evalTransformer(value, it)
                 }
             }
-            res.contents = request.replace("\$$key\$", value)
+            res.contents = fixContentLength(request.replace("\$$key\$", value))
         }
 
         return res
@@ -144,4 +144,16 @@ fun checkRegexSyntax(re: String): String {
     }
 
     return ""
+}
+
+fun fixContentLength(content: String): String {
+    val contentLengthHeader = "Content-Length"
+    val parts = content.split("\r\n\r\n", limit = 2)
+    if (parts.size == 1) return content // no body
+    val headerLoc = parts[0].indexOf(contentLengthHeader, ignoreCase = true)
+    if (headerLoc < 0) return content // no Content-Length header
+    val valLoc = headerLoc + contentLengthHeader.length + 2 // ": "
+    val valLen = content.substring(valLoc).indexOf("\r\n")
+
+    return "${content.take(valLoc)}${parts[1].length}${content.substring(valLoc + valLen)}"
 }

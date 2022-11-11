@@ -31,9 +31,9 @@ class BurpExtender : BurpExtension {
 
         this.api = api
 
-        api.misc().setExtensionName(EXTENSION_NAME)
-        items = ItemStore(api.persistence().userContext())
-        transformers = TransformerStore(api.persistence().userContext())
+        api.extension().setName(EXTENSION_NAME)
+        items = ItemStore(api.persistence().preferences())
+        transformers = TransformerStore(api.persistence().preferences())
         ui = UI(api, items, transformers)
         replacer = Replacer(api, items, transformers)
 
@@ -47,8 +47,7 @@ class BurpExtender : BurpExtension {
             request: HttpRequest, annotations: Annotations, toolSource: ToolSource
         ): RequestResult {
             if (!ui.isEnabled(toolSource.toolType())) return RequestResult.requestResult(
-                request,
-                Annotations.annotations()
+                request, Annotations.annotations()
             )
             val result = replacer.handleRequest(request.toString())
             return RequestResult.requestResult(
@@ -57,7 +56,7 @@ class BurpExtender : BurpExtension {
         }
 
         override fun handleHttpResponse(
-            request: HttpRequest, response: HttpResponse, annotations: Annotations, toolSource: ToolSource
+            response: HttpResponse, request: HttpRequest, annotations: Annotations, toolSource: ToolSource
         ): ResponseResult {
             if (!ui.isEnabled(toolSource.toolType())) return ResponseResult.responseResult(
                 response, Annotations.annotations()

@@ -1,11 +1,13 @@
 package burp
 
-import burp.api.montoya.persistence.PersistenceContext
+import burp.api.montoya.persistence.Preferences
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.graalvm.polyglot.*
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.Source
+import org.graalvm.polyglot.Value
 import java.io.InputStreamReader
 
 var LIB: Value? = null
@@ -61,9 +63,9 @@ data class Transformer(
 
 typealias Transformers = MutableMap<String, Transformer> // name -> transformer
 
-class TransformerStore(ctx: PersistenceContext) {
+class TransformerStore(ctx: Preferences) {
     // todo: unify stores somehow
-    private val ctx: PersistenceContext
+    private val ctx: Preferences
     var transformers: Transformers
 
     init {

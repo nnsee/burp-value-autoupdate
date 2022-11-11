@@ -1,6 +1,6 @@
 package burp
 
-import burp.api.montoya.persistence.PersistenceContext
+import burp.api.montoya.persistence.Preferences
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -25,8 +25,8 @@ data class Item(
 
 typealias Items = MutableMap<String, Item> // name -> item
 
-class ItemStore(ctx: PersistenceContext) {
-    private val ctx: PersistenceContext
+class ItemStore(ctx: Preferences) {
+    private val ctx: Preferences
     var items: Items
 
     init {

@@ -1,9 +1,10 @@
 package burp
 
 import burp.api.montoya.MontoyaApi
+import burp.api.montoya.core.ByteArray
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.core.ToolType.*
-import burp.api.montoya.persistence.PersistenceContext
+import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
 import java.awt.Color
 import java.awt.Font
@@ -16,7 +17,6 @@ import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
-import kotlin.text.Charsets.UTF_8
 
 val VALUES_TABLE = JTable()
 val TRANSFORMER_TABLE = JTable()
@@ -96,7 +96,7 @@ private fun rowToTName(row: Int): String {
 
 class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerStore) : JPanel() {
     private val api: MontoyaApi
-    private val ctx: PersistenceContext
+    private val ctx: Preferences
     private val itemStore: ItemStore
     private val transformerStore: TransformerStore
     private var extEnabled = true
@@ -106,7 +106,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         SCANNER to false,
         SEQUENCER to true,
         INTRUDER to true,
-        EXTENDER to false,
+        EXTENSIONS to false,
     )
 
     private val headerPanel = JPanel()
@@ -148,7 +148,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
 
     init {
         this.api = api
-        this.ctx = api.persistence().userContext()
+        this.ctx = api.persistence().preferences()
         this.itemStore = itemStore
         this.transformerStore = transformerStore
         initComponents()
@@ -181,8 +181,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         repeaterSel.isSelected = enabledTools[REPEATER]!!
         enabledTools[SEQUENCER] = ctx.getBoolean("sequencerE") ?: enabledTools[SEQUENCER]!!
         sequencerSel.isSelected = enabledTools[SEQUENCER]!!
-        enabledTools[EXTENDER] = ctx.getBoolean("extenderE") ?: enabledTools[EXTENDER]!!
-        extenderSel.isSelected = enabledTools[EXTENDER]!!
+        enabledTools[EXTENSIONS] = ctx.getBoolean("extenderE") ?: enabledTools[EXTENSIONS]!!
+        extenderSel.isSelected = enabledTools[EXTENSIONS]!!
 
         reloadValuesTable(itemStore.items)
         reloadTransformersTable(transformerStore.transformers)
@@ -245,14 +245,14 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
 
         transformerStore.save()
 
-        transformerEditor.contents = "".toByteArray(UTF_8)
+        transformerEditor.contents = ByteArray.byteArray("")
 
         reloadTransformersTable(transformerStore.transformers)
     }
 
     private fun transformerSave() {
         transformerStore.transformers[rowToTName(transformerTable.selectedRow)]?.code =
-            transformerEditor.contents.toString(UTF_8)
+            transformerEditor.contents.toString()
         transformerStore.save()
 
         transformerEditorSave.isEnabled = false
@@ -289,8 +289,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun extenderSel(e: ItemEvent) {
-        enabledTools[EXTENDER] = e.stateChange == SELECTED
-        ctx.setBoolean("extenderE", enabledTools[EXTENDER])
+        enabledTools[EXTENSIONS] = e.stateChange == SELECTED
+        ctx.setBoolean("extenderE", enabledTools[EXTENSIONS])
     }
 
     private fun tableEdit(e: TableModelEvent) {
@@ -329,14 +329,14 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         when (transformerTable.selectedRowCount) {
             0 -> {
                 transformerRemove.isEnabled = false
-                transformerEditor.contents = "".toByteArray(UTF_8)
+                transformerEditor.contents = ByteArray.byteArray("")
                 transformerEditor.setEditable(false)
             }
 
             else -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
-                    transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!.code.toByteArray(UTF_8)
+                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!.code)
                 transformerEditor.setEditable(true)
             }
         }

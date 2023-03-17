@@ -37,14 +37,13 @@ class BurpExtender : BurpExtension {
             if (!ui.isEnabled(request.toolSource().toolType()))
                 return RequestToBeSentAction.continueWith(request)
             val result = replacer.handleRequest(request.toString())
-            return RequestToBeSentAction.continueWith(HttpRequest.httpRequest(result.contents))
+            return RequestToBeSentAction.continueWith(HttpRequest.httpRequest(request.httpService(), result.contents))
         }
 
         override fun handleHttpResponseReceived(response: HttpResponseReceived): ResponseReceivedAction {
             if (!ui.isEnabled(response.toolSource().toolType()))
-                return ResponseReceivedAction.continueWith(response)
-            val result = replacer.handleRequest(response.toString())
-            return ResponseReceivedAction.continueWith(HttpResponse.httpResponse(result.contents))
+                replacer.handleResponse(response.toString())
+            return ResponseReceivedAction.continueWith(response)
         }
 
     }

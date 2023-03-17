@@ -7,6 +7,7 @@ import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
 import java.awt.Color
+import java.awt.Container
 import java.awt.Font
 import java.awt.Window
 import java.awt.event.*
@@ -265,32 +266,32 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
 
     private fun proxySel(e: ItemEvent) {
         enabledTools[PROXY] = e.stateChange == SELECTED
-        ctx.setBoolean("proxyE", enabledTools[PROXY])
+        ctx.setBoolean("proxyE", enabledTools[PROXY]!!)
     }
 
     private fun scannerSel(e: ItemEvent) {
         enabledTools[SCANNER] = e.stateChange == SELECTED
-        ctx.setBoolean("scannerE", enabledTools[SCANNER])
+        ctx.setBoolean("scannerE", enabledTools[SCANNER]!!)
     }
 
     private fun intruderSel(e: ItemEvent) {
         enabledTools[INTRUDER] = e.stateChange == SELECTED
-        ctx.setBoolean("intruderE", enabledTools[INTRUDER])
+        ctx.setBoolean("intruderE", enabledTools[INTRUDER]!!)
     }
 
     private fun repeaterSel(e: ItemEvent) {
         enabledTools[REPEATER] = e.stateChange == SELECTED
-        ctx.setBoolean("repeaterE", enabledTools[REPEATER])
+        ctx.setBoolean("repeaterE", enabledTools[REPEATER]!!)
     }
 
     private fun sequencerSel(e: ItemEvent) {
         enabledTools[SEQUENCER] = e.stateChange == SELECTED
-        ctx.setBoolean("sequencerE", enabledTools[SEQUENCER])
+        ctx.setBoolean("sequencerE", enabledTools[SEQUENCER]!!)
     }
 
     private fun extenderSel(e: ItemEvent) {
         enabledTools[EXTENSIONS] = e.stateChange == SELECTED
-        ctx.setBoolean("extenderE", enabledTools[EXTENSIONS])
+        ctx.setBoolean("extenderE", enabledTools[EXTENSIONS]!!)
     }
 
     private fun tableEdit(e: TableModelEvent) {
@@ -498,7 +499,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerEditorSave.isEnabled = false
         transformerEditorPanel.add(transformerEditorSave, "cell 0 0")
 
-        transformerEditor.uiComponent().components.forEach top@{
+        (transformerEditor.uiComponent() as Container).components.forEach top@{
             if (it != null && it.name == "messageEditor") {
                 (it as JScrollPane).components.filterIsInstance<JViewport>().forEach { child ->
                     child.components.forEach { candidate ->

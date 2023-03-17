@@ -47,6 +47,6 @@ class ItemStore(ctx: Preferences) {
     }
 
     fun nuke() {
-        ctx.delete(ITEM_STORE)
+        ctx.deleteString(ITEM_STORE)
     }
 }

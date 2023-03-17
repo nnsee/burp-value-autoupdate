@@ -86,6 +86,6 @@ class TransformerStore(ctx: Preferences) {
     }
 
     fun nuke() {
-        ctx.delete(TRANSFORMER_STORE)
+        ctx.deleteString(TRANSFORMER_STORE)
     }
 }

@@ -263,7 +263,11 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun transformerTest() {
-        val window = TransformerTestDialog(getWindowAncestor(this), transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!, itemStore.items[rowToName(valuesTable.selectedRow)]?.lastMatch!!)
+        val window = TransformerTestDialog(
+            getWindowAncestor(this),
+            transformerEditor.contents.toString(),
+            itemStore.items[rowToName(valuesTable.selectedRow)]?.lastMatch!!
+        )
         window.title = "Transformer output"
         window.isVisible = true
     }
@@ -351,7 +355,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             1 -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
-                   ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
+                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
                 transformerEditor.setEditable(true)
                 if (valuesTable.selectedRowCount == 1)
                     transformerEditorTest.isEnabled = true
@@ -885,18 +889,13 @@ class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) :
     //</editor-fold>
 }
 
-class TransformerTestDialog(owner: Window?, transformer: String, value: String) : JDialog(owner) {
-    private val transformer: String
-    private val value: String
-
+class TransformerTestDialog(owner: Window?, private val transformer: String, private val value: String) : JDialog(owner) {
     private val nameLabel = JLabel()
     private val output = JTextArea()
     private val panel3 = JPanel()
     private val okButton = JButton()
 
     init {
-        this.transformer = transformer
-        this.value = value
         initComponents()
         this.defaultCloseOperation = DISPOSE_ON_CLOSE
     }

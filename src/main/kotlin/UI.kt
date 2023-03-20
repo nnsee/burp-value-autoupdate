@@ -374,7 +374,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         }
     }
 
-    //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
         layout = MigLayout("fill,hidemode 3,align center top", "fill")
         leftPanel.layout = MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][][][]")
@@ -550,8 +549,6 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         rightPanel.add(transformerEditorPanel, "cell 0 2,grow,push,span")
         add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
     }
-
-    //</editor-fold>
 }
 
 class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transformerStore: TransformerStore) :
@@ -708,7 +705,6 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
         errorLabel.text = err
     }
 
-    //<editor-fold desc="UI layout cruft">
     private fun initComponents() {
         contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
 
@@ -787,32 +783,50 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
         pack()
         setLocationRelativeTo(owner)
     }
-    //</editor-fold>
 }
 
-class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) : JDialog(owner) {
-    private val transformerStore: TransformerStore
-
-    private val panel1 = JPanel()
-    private val nameLabel = JLabel()
-    private val nameField = JTextField()
-    private val errorLabel = JLabel()
-    private val panel3 = JPanel()
-    private val okButton = JButton()
-    private val cancelButton = JButton()
+class TransformerAddDialog(owner: Window?, private val transformerStore: TransformerStore) : JDialog(owner) {
+    private val panel1 = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]"))
+    private val nameLabel = JLabel("Name")
+    private val nameField = JTextField().apply {
+        addKeyListener(object : KeyAdapter() {
+            override fun keyTyped(e: KeyEvent) {
+                showError(" ")
+            }
+        })
+    }
+    private val errorLabel = JLabel(" ").apply {
+        foreground = Color.RED
+    }
+    private val panel3 = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]"))
+    private val okButton = JButton("OK").apply {
+        background = UIManager.getColor("Button.background")
+        font = font.deriveFont(font.style or Font.BOLD)
+        addActionListener { if (apply()) close() }
+    }
+    private val cancelButton = JButton("Cancel").apply {
+        addActionListener { close() }
+    }
 
     init {
-        this.transformerStore = transformerStore
-        initComponents()
-        this.defaultCloseOperation = DISPOSE_ON_CLOSE
+        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+        panel1.add(nameLabel, "cell 0 0")
+        panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
+        contentPane.add(panel1, "cell 0 0")
+        contentPane.add(errorLabel, "cell 0 4")
+        panel3.add(okButton, "west,gapx null 10")
+        panel3.add(cancelButton, "EAST")
+        contentPane.add(panel3, "cell 0 5")
+
+        setSize(250, 100)
+        isResizable = false
+        pack()
+        setLocationRelativeTo(owner)
+        defaultCloseOperation = DISPOSE_ON_CLOSE
     }
 
-    private fun keyTyped() {
-        showError(" ")
-    }
-
-    private fun ok() {
-        if (apply()) this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
+    private fun close() {
+        dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
     }
 
     private fun apply(): Boolean {
@@ -835,55 +849,9 @@ class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) :
         return true
     }
 
-    private fun cancel() {
-        this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
-    }
-
     private fun showError(err: String) {
         errorLabel.text = err
     }
-
-    //<editor-fold desc="UI layout cruft">
-    private fun initComponents() {
-        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-
-        panel1.layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][]")
-
-        nameLabel.text = "Name"
-        panel1.add(nameLabel, "cell 0 0")
-
-        nameField.addKeyListener(object : KeyAdapter() {
-            override fun keyTyped(e: KeyEvent) {
-                this@TransformerAddDialog.keyTyped()
-            }
-        })
-        panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
-
-        contentPane.add(panel1, "cell 0 0")
-
-        errorLabel.foreground = Color.RED
-        showError(" ")
-        contentPane.add(errorLabel, "cell 0 4")
-
-        panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
-
-        okButton.text = "OK"
-        okButton.background = UIManager.getColor("Button.background")
-        okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
-        okButton.addActionListener { ok() }
-        panel3.add(okButton, "west,gapx null 10")
-
-        cancelButton.text = "Cancel"
-        cancelButton.addActionListener { cancel() }
-        panel3.add(cancelButton, "EAST")
-        contentPane.add(panel3, "cell 0 5")
-
-        setSize(250, 100)
-        isResizable = false
-        pack()
-        setLocationRelativeTo(owner)
-    }
-    //</editor-fold>
 }
 
 class TransformerTestDialog(owner: Window?, transformer: String, value: String) : JDialog(owner) {
@@ -925,6 +893,6 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
 
         pack()
         setLocationRelativeTo(owner)
-        this.defaultCloseOperation = DISPOSE_ON_CLOSE
+        defaultCloseOperation = DISPOSE_ON_CLOSE
     }
 }

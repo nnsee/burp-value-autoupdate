@@ -146,6 +146,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     private val transformerEditorPanel = JPanel()
     private val transformerEditor = api.userInterface().createRawEditor()
     private val transformerEditorSave = JButton()
+    private val transformerEditorTest = JButton()
 
     init {
         this.api = api
@@ -243,20 +244,24 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         if (selectedRows.isEmpty()) return
 
         transformerStore.transformers.remove(rowToTName(selectedRows[0]))
-
         transformerStore.save()
-
         transformerEditor.contents = ByteArray.byteArray("")
 
         reloadTransformersTable(transformerStore.transformers)
     }
 
     private fun transformerSave() {
-        transformerStore.transformers[rowToTName(transformerTable.selectedRow)]?.code =
+        transformerStore.transformers[rowToTName(transformerTable.selectedRow)] =
             transformerEditor.contents.toString()
         transformerStore.save()
 
         transformerEditorSave.isEnabled = false
+    }
+
+    private fun transformerTest() {
+        val window = TransformerTestDialog(getWindowAncestor(this), transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!, itemStore.items[rowToName(valuesTable.selectedRow)]?.lastMatch!!)
+        window.title = "Transformer output"
+        window.isVisible = true
     }
 
     private fun enabledToggle(e: ItemEvent) {
@@ -310,16 +315,20 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             0 -> {
                 valueRemove.isEnabled = false
                 valueEdit.isEnabled = false
+                transformerEditorTest.isEnabled = false
             }
 
             1 -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = true
+                if (transformerTable.selectedRowCount == 1)
+                    transformerEditorTest.isEnabled = true
             }
 
             else -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = false
+                transformerEditorTest.isEnabled = false
             }
         }
     }
@@ -332,13 +341,24 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
                 transformerRemove.isEnabled = false
                 transformerEditor.contents = ByteArray.byteArray("")
                 transformerEditor.setEditable(false)
+                transformerEditorTest.isEnabled = false
+            }
+
+            1 -> {
+                transformerRemove.isEnabled = true
+                transformerEditor.contents =
+                   ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
+                transformerEditor.setEditable(true)
+                if (valuesTable.selectedRowCount == 1)
+                    transformerEditorTest.isEnabled = true
             }
 
             else -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
-                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!.code)
+                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
                 transformerEditor.setEditable(true)
+                transformerEditorTest.isEnabled = false
             }
         }
     }
@@ -498,6 +518,11 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         transformerEditorSave.addActionListener { transformerSave() }
         transformerEditorSave.isEnabled = false
         transformerEditorPanel.add(transformerEditorSave, "cell 0 0")
+
+        transformerEditorTest.text = "Test"
+        transformerEditorTest.addActionListener { transformerTest() }
+        transformerEditorTest.isEnabled = false
+        transformerEditorPanel.add(transformerEditorTest, "cell 1 0")
 
         (transformerEditor.uiComponent() as Container).components.forEach top@{
             if (it != null && it.name == "messageEditor") {
@@ -793,12 +818,11 @@ class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) :
             return false
         }
 
-        val transformer = Transformer("", "")
         if (transformerStore.transformers[name] != null) {
             showError("Transformer named \"$name\" already exists!")
             return false
         }
-        transformerStore.transformers[name] = transformer
+        transformerStore.transformers[name] = ""
 
         transformerStore.save()
         reloadTransformersTable(transformerStore.transformers)
@@ -848,6 +872,65 @@ class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) :
         cancelButton.addActionListener { cancel() }
         panel3.add(cancelButton, "EAST")
         contentPane.add(panel3, "cell 0 5")
+
+        setSize(250, 100)
+        isResizable = false
+        pack()
+        setLocationRelativeTo(owner)
+    }
+    //</editor-fold>
+}
+
+class TransformerTestDialog(owner: Window?, transformer: String, value: String) : JDialog(owner) {
+    private val transformer: String
+    private val value: String
+
+    private val nameLabel = JLabel()
+    private val output = JTextArea()
+    private val panel3 = JPanel()
+    private val okButton = JButton()
+
+    init {
+        this.transformer = transformer
+        this.value = value
+        initComponents()
+        this.defaultCloseOperation = DISPOSE_ON_CLOSE
+    }
+
+    private fun ok() {
+        this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
+    }
+
+    //<editor-fold desc="UI layout cruft">
+    private fun initComponents() {
+        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+
+        nameLabel.text = "Output"
+        contentPane.add(nameLabel, "cell 0 0")
+
+        output.font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+        output.isEditable = false
+        output.lineWrap = true
+        output.columns = 80
+        output.rows = 10
+        val transformed = evalTransformer(value, transformer)
+        if (transformed.err == "") {
+            output.text = transformed.out
+        } else {
+            nameLabel.text = "Error"
+            output.text = transformed.err
+        }
+        contentPane.add(JScrollPane(output), "cell 0 1")
+
+        panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
+
+        okButton.text = "OK"
+        okButton.background = UIManager.getColor("Button.background")
+        okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
+        okButton.addActionListener { ok() }
+
+        panel3.add(okButton, "west,gapx null 10")
+        contentPane.add(panel3, "cell 0 4")
 
         setSize(250, 100)
         isResizable = false

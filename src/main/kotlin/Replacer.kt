@@ -26,7 +26,9 @@ interface ReplaceStrategy {
             var value = item.lastMatch
             if (item.transformer != "") {
                 transformerStore.transformers[item.transformer]?.let {
-                    value = evalTransformer(value, it)
+                    val transformed = evalTransformer(value, it)
+                    if (transformed.err == "")
+                        value = transformed.out
                 }
             }
             res.contents = fixContentLength(request.replace("\$$key\$", value))

@@ -14,6 +14,8 @@ var LIB: Value? = null
 var DONE_LIB_INIT = false
 const val TRANSFORMER_STORE = "transformerStore"
 
+data class TransformerResult(var out: String, var err: String)
+
 fun initTransformerBundle(): Value? {
     DONE_LIB_INIT = true
     val pluginClassLoader = object {}.javaClass.classLoader
@@ -31,22 +33,23 @@ fun initTransformerBundle(): Value? {
     return context.eval(source)
 }
 
-fun evalTransformer(value: String, transformer: Transformer): String {
+fun evalTransformer(value: String, transformer: String): TransformerResult {
+    var res = TransformerResult("", "")
+
     if (!DONE_LIB_INIT) {
         LIB = initTransformerBundle()
     }
     val context = Context.create()
     val bindings = context.getBindings("js")
-    var res = value
     bindings.putMember("value", value)
     bindings.putMember("Lib", LIB)
     try {
-        res = context.eval("js", transformer.code).asString()
+        res.out = context.eval("js", transformer).asString()
     } catch (e: Exception) {
         var error = "Transformer exception!"
         e.message?.let {
             error += "\n${it}"
-            transformer.error = it
+            res.err = it
         }
         log.error(error)
     }
@@ -55,13 +58,7 @@ fun evalTransformer(value: String, transformer: Transformer): String {
     return res
 }
 
-@Serializable
-data class Transformer(
-    var code: String,
-    var error: String,
-)
-
-typealias Transformers = MutableMap<String, Transformer> // name -> transformer
+typealias Transformers = MutableMap<String, String> // name -> transformer
 
 class TransformerStore(ctx: Preferences) {
     // todo: unify stores somehow

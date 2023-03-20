@@ -140,7 +140,7 @@ fun checkRegexSyntax(re: String): String {
             return "Named group `val` not found!"
         }
     } catch (e: PatternSyntaxException) {
-        return "Regex pattern has syntax errors!"
+        return e.message ?: "Regex pattern has syntax errors!"
     }
 
     return ""

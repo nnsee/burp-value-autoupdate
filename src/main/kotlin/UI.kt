@@ -44,6 +44,8 @@ fun replaced(name: String, count: Int) {
 private fun reloadValuesTable(items: Items) {
     val dtm = VALUES_TABLE.model as DefaultTableModel
     val tmpMap = mutableMapOf<String, Int>()
+
+    VALUES_TABLE.clearSelection()
     dtm.dataVector.removeAllElements()
 
     items.forEach {
@@ -68,6 +70,8 @@ private fun reloadValuesTable(items: Items) {
 private fun reloadTransformersTable(transformers: Transformers) {
     val dtm = TRANSFORMER_TABLE.model as DefaultTableModel
     val tmpMap = mutableMapOf<String, Int>()
+
+    TRANSFORMER_TABLE.clearSelection()
     dtm.dataVector.removeAllElements()
 
     transformers.forEach {

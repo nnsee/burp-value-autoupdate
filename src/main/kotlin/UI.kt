@@ -255,8 +255,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun transformerSave() {
-        transformerStore.transformers[rowToTName(transformerTable.selectedRow)] =
-            transformerEditor.contents.toString()
+        transformerStore.transformers[rowToTName(transformerTable.selectedRow)] = transformerEditor.contents.toString()
         transformerStore.save()
 
         transformerEditorSave.isEnabled = false
@@ -329,8 +328,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             1 -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = true
-                if (transformerTable.selectedRowCount == 1)
-                    transformerEditorTest.isEnabled = true
+                if (transformerTable.selectedRowCount == 1) transformerEditorTest.isEnabled = true
             }
 
             else -> {
@@ -357,8 +355,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
                 transformerEditor.contents =
                     ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
                 transformerEditor.setEditable(true)
-                if (valuesTable.selectedRowCount == 1)
-                    transformerEditorTest.isEnabled = true
+                if (valuesTable.selectedRowCount == 1) transformerEditorTest.isEnabled = true
             }
 
             else -> {
@@ -889,56 +886,45 @@ class TransformerAddDialog(owner: Window?, transformerStore: TransformerStore) :
     //</editor-fold>
 }
 
-class TransformerTestDialog(owner: Window?, private val transformer: String, private val value: String) : JDialog(owner) {
-    private val nameLabel = JLabel()
-    private val output = JTextArea()
-    private val panel3 = JPanel()
-    private val okButton = JButton()
+class TransformerTestDialog(owner: Window?, transformer: String, value: String) : JDialog(owner) {
+    private val nameLabel = JLabel("Output")
+    private val output = JTextArea(10, 80).apply {
+        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+        isEditable = false
+        lineWrap = true
+    }
+    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]"))
+    private val okButton = JButton("OK").apply {
+        background = UIManager.getColor("Button.background")
+        font = font.deriveFont(font.style or Font.BOLD)
+        addActionListener {
+            this@TransformerTestDialog.dispatchEvent(
+                WindowEvent(
+                    this@TransformerTestDialog, WindowEvent.WINDOW_CLOSING
+                )
+            )
+        }
+    }
 
     init {
-        initComponents()
-        this.defaultCloseOperation = DISPOSE_ON_CLOSE
-    }
-
-    private fun ok() {
-        this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
-    }
-
-    //<editor-fold desc="UI layout cruft">
-    private fun initComponents() {
         contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+        contentPane.add(nameLabel, "cell 0 0, wrap")
 
-        nameLabel.text = "Output"
-        contentPane.add(nameLabel, "cell 0 0")
-
-        output.font = Font(Font.MONOSPACED, Font.PLAIN, 12)
-        output.isEditable = false
-        output.lineWrap = true
-        output.columns = 80
-        output.rows = 10
         val transformed = evalTransformer(value, transformer)
         if (transformed.err == "") {
             output.text = transformed.out
         } else {
             nameLabel.text = "Error"
+            nameLabel.foreground = Color.RED
             output.text = transformed.err
         }
-        contentPane.add(JScrollPane(output), "cell 0 1")
 
-        panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
+        contentPane.add(JScrollPane(output), "grow, push, span")
+        buttonPanel.add(okButton, "west,gapx null 10")
+        contentPane.add(buttonPanel, "cell 0 4")
 
-        okButton.text = "OK"
-        okButton.background = UIManager.getColor("Button.background")
-        okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
-        okButton.addActionListener { ok() }
-
-        panel3.add(okButton, "west,gapx null 10")
-        contentPane.add(panel3, "cell 0 4")
-
-        setSize(250, 100)
-        isResizable = false
         pack()
         setLocationRelativeTo(owner)
+        this.defaultCloseOperation = DISPOSE_ON_CLOSE
     }
-    //</editor-fold>
 }

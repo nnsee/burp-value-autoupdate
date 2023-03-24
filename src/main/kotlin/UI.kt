@@ -45,7 +45,11 @@ val TRANSFORMER_TABLE = JTable().apply {
         arrayOf(), arrayOf(
             "Name"
         )
-    ) {}
+    ) {
+        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+            return false
+        }
+    }
 }
 
 const val TAB_NAME = "Value Tracker"

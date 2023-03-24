@@ -19,8 +19,36 @@ import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
 
-val VALUES_TABLE = JTable()
-val TRANSFORMER_TABLE = JTable()
+val VALUES_TABLE = JTable().apply {
+    setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+    model = object : DefaultTableModel(
+        arrayOf(), arrayOf(
+            "", "Name", "Match", "Last value", "Times updated", "Times replaced", "Transformer"
+        )
+    ) {
+        override fun getColumnClass(columnIndex: Int): Class<*> {
+            if (columnIndex == 0) return Boolean::class.javaObjectType
+            return String::class.javaObjectType
+        }
+
+        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+            if (columnIndex == 0) return true  // enabled button
+            return false
+        }
+    }
+    columnModel.getColumn(0).resizable = false
+    columnModel.getColumn(0).width = 25
+}
+
+val TRANSFORMER_TABLE = JTable().apply {
+    setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+    model = object : DefaultTableModel(
+        arrayOf(), arrayOf(
+            "Name"
+        )
+    ) {}
+}
+
 const val TAB_NAME = "Value updater"
 var TAB_VISIBLE = false
 var namedRows = mapOf<String, Int>()
@@ -99,11 +127,8 @@ private fun rowToTName(row: Int): String {
     return dtm.getValueAt(row, 0).toString()
 }
 
-class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerStore) : JPanel() {
-    private val api: MontoyaApi
-    private val ctx: Preferences
-    private val itemStore: ItemStore
-    private val transformerStore: TransformerStore
+class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transformerStore: TransformerStore) : JPanel() {
+    private val ctx: Preferences = api.persistence().preferences()
     private var extEnabled = true
     private var enabledTools = mutableMapOf(
         PROXY to true,
@@ -114,53 +139,199 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         EXTENSIONS to false,
     )
 
-    private val headerPanel = JPanel()
-    private val leftPanel = JPanel()
-    private val rightPanel = JPanel()
-    private val mainLabel = JLabel()
-    private val headerNestedPanel = JPanel()
-    private val enabledToggle = JCheckBox()
+    private val mainLabel = JLabel("Value Autoupdater").apply {
+        font.deriveFont(font.style or Font.BOLD)
+    }
+
+    private val enabledToggle = JCheckBox("Enabled").apply {
+        addItemListener { e: ItemEvent -> enabledToggle(e) }
+    }
+
+    private val headerNestedPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
+        add(enabledToggle, "cell 0 0")
+    }
+
+    private val headerPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+        add(mainLabel, "cell 0 0")
+        add(headerNestedPanel, "cell 0 1")
+    }
+
     private val separator2 = JSeparator()
-    private val valuesPanel = JPanel()
-    private val valuesLabel = JLabel()
-    private val valueSelectorPanel = JPanel()
-    private val valueButtons = JPanel()
-    private val valueAdd = JButton()
-    private val valueEdit = JButton()
-    private val valueRemove = JButton()
-    private val valuesTablePanel = JScrollPane()
-    private val valuesTable = VALUES_TABLE
+
+    private val valuesLabel = JLabel("Values to watch").apply {
+        font.deriveFont(font.style or Font.BOLD)
+    }
+
+    private val valueAdd = JButton("Add").apply {
+        addActionListener { valueAdd() }
+    }
+
+    private val valueEdit = JButton("Edit").apply {
+        addActionListener { valueEdit() }
+        isEnabled = false
+    }
+
+    private val valueRemove = JButton("Remove").apply {
+        addActionListener { valueRemove() }
+        isEnabled = false
+    }
+
+    private val valueButtons = JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+        add(valueAdd, "cell 0 0")
+        add(valueEdit, "cell 0 1")
+        add(valueRemove, "cell 0 2")
+    }
+
+    private val valuesTablePanel = JScrollPane(VALUES_TABLE)
+
+    private val valueSelectorPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+        add(valueButtons, "cell 0 0,aligny top,growy 0")
+        add(valuesTablePanel, "cell 1 0,grow,push,span")
+    }
+
+    private val valuesPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][][][]")).apply {
+        add(valuesLabel, "cell 0 0")
+        add(valueSelectorPanel, "cell 0 2,grow,push,span")
+    }
+
     private val separator1 = JSeparator()
-    private val toolsPanel = JPanel()
-    private val toolsLabel = JLabel()
-    private val toolSelectionPanel = JPanel()
-    private val proxySel = JCheckBox()
-    private val scannerSel = JCheckBox()
-    private val intruderSel = JCheckBox()
-    private val repeaterSel = JCheckBox()
-    private val sequencerSel = JCheckBox()
-    private val extenderSel = JCheckBox()
-    private val transformerLabel = JLabel()
-    private val transformerSelectorPanel = JPanel()
-    private val transformerButtons = JPanel()
-    private val transformerAdd = JButton()
-    private val transformerRemove = JButton()
-    private val transformerTablePanel = JScrollPane()
-    private val transformerTable = TRANSFORMER_TABLE
-    private val transformerEditorPanel = JPanel()
-    private val transformerEditor = api.userInterface().createRawEditor()
-    private val transformerEditorSave = JButton()
-    private val transformerEditorTest = JButton()
+
+    private val toolsLabel = JLabel("Enabled tools").apply {
+        font = font.deriveFont(font.style or Font.BOLD)
+    }
+
+    private val proxySel = JCheckBox("Proxy").apply {
+        addItemListener { e: ItemEvent -> toolSelected(PROXY, e) }
+    }
+
+    private val scannerSel = JCheckBox("Scanner").apply {
+        addItemListener { e: ItemEvent -> toolSelected(SCANNER, e) }
+    }
+
+    private val intruderSel = JCheckBox("Intruder").apply {
+        addItemListener { e: ItemEvent -> toolSelected(INTRUDER, e) }
+    }
+
+    private val repeaterSel = JCheckBox("Repeater").apply {
+        addItemListener { e: ItemEvent -> toolSelected(REPEATER, e) }
+    }
+
+    private val sequencerSel = JCheckBox("Sequencer").apply {
+        addItemListener { e: ItemEvent -> toolSelected(SEQUENCER, e) }
+    }
+
+    private val extenderSel = JCheckBox("Extensions").apply {
+        addItemListener { e: ItemEvent -> toolSelected(EXTENSIONS, e) }
+    }
+
+    private val toolSelectionMap = mapOf(
+        PROXY to proxySel,
+        SCANNER to scannerSel,
+        INTRUDER to intruderSel,
+        REPEATER to repeaterSel,
+        SEQUENCER to sequencerSel,
+        EXTENSIONS to extenderSel,
+    )
+
+    private val toolSelectionPanel = JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
+        add(proxySel, "cell 0 0")
+        add(scannerSel, "cell 1 0")
+        add(intruderSel, "cell 2 0")
+        add(repeaterSel, "cell 0 1")
+        add(sequencerSel, "cell 1 1")
+        add(extenderSel, "cell 2 1")
+    }
+
+    private val toolsPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+        add(toolsLabel, "cell 0 0")
+        add(toolSelectionPanel, "cell 0 1")
+    }
+
+    private val leftPanel = JPanel(MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][][][]")).apply {
+        add(headerPanel, "cell 0 0")
+        add(separator2, "cell 0 1")
+        add(valuesPanel, "cell 0 2")
+        add(separator1, "cell 0 3")
+        add(toolsPanel, "cell 0 4")
+    }
+
+    private val transformerLabel = JLabel("Value Transformers").apply {
+        font = font.deriveFont(font.style or Font.BOLD)
+    }
+
+    private val transformerAdd = JButton("Add").apply {
+        addActionListener { transformerAdd() }
+    }
+
+    private val transformerRemove = JButton("Remove").apply {
+        addActionListener { transformerRemove() }
+        isEnabled = false
+    }
+
+    private val transformerButtons = JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+        add(transformerAdd, "cell 0 0")
+        add(transformerRemove, "cell 0 1")
+    }
+
+    private val transformerTablePanel = JScrollPane(TRANSFORMER_TABLE)
+
+    private val transformerSelectorPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+        add(transformerButtons, "cell 0 0,aligny top,growy")
+        add(transformerTablePanel, "cell 1 0,grow,push,span")
+    }
+
+    private val transformerEditorSave = JButton("Save").apply {
+        addActionListener { transformerSave() }
+        isEnabled = false
+    }
+
+    private val transformerEditorTest = JButton("Test").apply {
+        addActionListener { transformerTest() }
+        isEnabled = false
+    }
+
+    private val transformerEditor = api.userInterface().createRawEditor().apply {
+        setEditable(false)
+        // yeehaw
+        (uiComponent() as Container).components.forEach top@{
+            if (it != null && it.name == "messageEditor") {
+                (it as JScrollPane).components.filterIsInstance<JViewport>().forEach { child ->
+                    child.components.forEach { candidate ->
+                        if (candidate.name == "syntaxTextArea") {
+                            (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
+                                override fun keyTyped(e: KeyEvent) {
+                                    this@UI.editorTyped()
+                                }
+                            })
+                            return@top
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private val transformerEditorPanel = JPanel(MigLayout("hidemode 3", "[]", "[][]")).apply {
+        add(transformerEditorSave, "cell 0 0")
+        add(transformerEditorTest, "cell 1 0")
+        add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
+    }
+
+    private val rightPanel = JPanel(MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][]")).apply {
+        add(transformerLabel, "cell 0 0")
+        add(transformerSelectorPanel, "cell 0 1")
+        add(transformerEditorPanel, "cell 0 2,grow,push,span")
+    }
 
     init {
-        this.api = api
-        this.ctx = api.persistence().preferences()
-        this.itemStore = itemStore
-        this.transformerStore = transformerStore
-        initComponents()
-        loadValuesFromStore()
-        api.userInterface().registerSuiteTab(TAB_NAME, this)
-        this.addComponentListener(object : ComponentAdapter() {
+        layout = MigLayout("fill,hidemode 3,align center top", "fill")
+        add(leftPanel, "w 50%,aligny top,growy 0,growx")
+        add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
+
+        (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
+        VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
+        TRANSFORMER_TABLE.selectionModel.addListSelectionListener { transformerSelected() }
+        addComponentListener(object : ComponentAdapter() {
             override fun componentShown(e: ComponentEvent?) {
                 TAB_VISIBLE = true
                 reloadValuesTable(itemStore.items)
@@ -171,24 +342,18 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             }
         })
 
+        loadValuesFromStore()
+        api.userInterface().registerSuiteTab(TAB_NAME, this)
     }
 
     private fun loadValuesFromStore() {
         extEnabled = ctx.getBoolean("extEnabled") ?: true
         enabledToggle.isSelected = extEnabled
 
-        enabledTools[PROXY] = ctx.getBoolean("proxyE") ?: enabledTools[PROXY]!!
-        proxySel.isSelected = enabledTools[PROXY]!!
-        enabledTools[SCANNER] = ctx.getBoolean("scannerE") ?: enabledTools[SCANNER]!!
-        scannerSel.isSelected = enabledTools[SCANNER]!!
-        enabledTools[INTRUDER] = ctx.getBoolean("intruderE") ?: enabledTools[INTRUDER]!!
-        intruderSel.isSelected = enabledTools[INTRUDER]!!
-        enabledTools[REPEATER] = ctx.getBoolean("repeaterE") ?: enabledTools[REPEATER]!!
-        repeaterSel.isSelected = enabledTools[REPEATER]!!
-        enabledTools[SEQUENCER] = ctx.getBoolean("sequencerE") ?: enabledTools[SEQUENCER]!!
-        sequencerSel.isSelected = enabledTools[SEQUENCER]!!
-        enabledTools[EXTENSIONS] = ctx.getBoolean("extenderE") ?: enabledTools[EXTENSIONS]!!
-        extenderSel.isSelected = enabledTools[EXTENSIONS]!!
+        toolSelectionMap.forEach {
+            enabledTools[it.key] = ctx.getBoolean("${it.key.name}-enabled") ?: enabledTools[it.key]!!
+            it.value.isSelected = enabledTools[it.key]!!
+        }
 
         reloadValuesTable(itemStore.items)
         reloadTransformersTable(transformerStore.transformers)
@@ -212,7 +377,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun valueEdit() {
-        val selected = valuesTable.selectedRowCount
+        val selected = VALUES_TABLE.selectedRowCount
         if (selected < 1) {
             return
         }
@@ -221,7 +386,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             return
         }
 
-        val index = valuesTable.selectedRows[0]
+        val index = VALUES_TABLE.selectedRows[0]
 
         val window = AddEditDialog(getWindowAncestor(this), index, itemStore, transformerStore)
         window.title = "Edit value"
@@ -229,8 +394,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun valueRemove() {
-        val selectedRows = valuesTable.selectedRows.reversed()
-        VALUES_TABLE.clearSelection() // visual bug work around
+        val selectedRows = VALUES_TABLE.selectedRows.reversed()
+        VALUES_TABLE.clearSelection() // visual bug workaround
 
         for (row in selectedRows) {
             itemStore.items.remove(rowToName(row))
@@ -242,8 +407,8 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun transformerRemove() {
-        val selectedRows = transformerTable.selectedRows
-        TRANSFORMER_TABLE.clearSelection() // visual bug work around
+        val selectedRows = TRANSFORMER_TABLE.selectedRows
+        TRANSFORMER_TABLE.clearSelection() // visual bug workaround
 
         if (selectedRows.isEmpty()) return
 
@@ -255,7 +420,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun transformerSave() {
-        transformerStore.transformers[rowToTName(transformerTable.selectedRow)] = transformerEditor.contents.toString()
+        transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)] = transformerEditor.contents.toString()
         transformerStore.save()
 
         transformerEditorSave.isEnabled = false
@@ -265,7 +430,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         val window = TransformerTestDialog(
             getWindowAncestor(this),
             transformerEditor.contents.toString(),
-            itemStore.items[rowToName(valuesTable.selectedRow)]?.lastMatch!!
+            itemStore.items[rowToName(VALUES_TABLE.selectedRow)]?.lastMatch!!
         )
         window.title = "Transformer output"
         window.isVisible = true
@@ -276,34 +441,10 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
         ctx.setBoolean("extEnabled", extEnabled)
     }
 
-    private fun proxySel(e: ItemEvent) {
-        enabledTools[PROXY] = e.stateChange == SELECTED
-        ctx.setBoolean("proxyE", enabledTools[PROXY]!!)
-    }
-
-    private fun scannerSel(e: ItemEvent) {
-        enabledTools[SCANNER] = e.stateChange == SELECTED
-        ctx.setBoolean("scannerE", enabledTools[SCANNER]!!)
-    }
-
-    private fun intruderSel(e: ItemEvent) {
-        enabledTools[INTRUDER] = e.stateChange == SELECTED
-        ctx.setBoolean("intruderE", enabledTools[INTRUDER]!!)
-    }
-
-    private fun repeaterSel(e: ItemEvent) {
-        enabledTools[REPEATER] = e.stateChange == SELECTED
-        ctx.setBoolean("repeaterE", enabledTools[REPEATER]!!)
-    }
-
-    private fun sequencerSel(e: ItemEvent) {
-        enabledTools[SEQUENCER] = e.stateChange == SELECTED
-        ctx.setBoolean("sequencerE", enabledTools[SEQUENCER]!!)
-    }
-
-    private fun extenderSel(e: ItemEvent) {
-        enabledTools[EXTENSIONS] = e.stateChange == SELECTED
-        ctx.setBoolean("extenderE", enabledTools[EXTENSIONS]!!)
+    private fun toolSelected(tool: ToolType, e: ItemEvent) {
+        val enabled = e.stateChange == SELECTED
+        enabledTools[tool] = enabled
+        ctx.setBoolean("${tool.name}-enabled", enabled)
     }
 
     private fun tableEdit(e: TableModelEvent) {
@@ -318,7 +459,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun tableSelected() {
-        when (valuesTable.selectedRowCount) {
+        when (VALUES_TABLE.selectedRowCount) {
             0 -> {
                 valueRemove.isEnabled = false
                 valueEdit.isEnabled = false
@@ -328,7 +469,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             1 -> {
                 valueRemove.isEnabled = true
                 valueEdit.isEnabled = true
-                if (transformerTable.selectedRowCount == 1) transformerEditorTest.isEnabled = true
+                if (TRANSFORMER_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
             }
 
             else -> {
@@ -342,7 +483,7 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     private fun transformerSelected() {
         transformerEditorSave.isEnabled = false
 
-        when (transformerTable.selectedRowCount) {
+        when (TRANSFORMER_TABLE.selectedRowCount) {
             0 -> {
                 transformerRemove.isEnabled = false
                 transformerEditor.contents = ByteArray.byteArray("")
@@ -353,15 +494,15 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
             1 -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
-                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
+                    ByteArray.byteArray(transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]!!)
                 transformerEditor.setEditable(true)
-                if (valuesTable.selectedRowCount == 1) transformerEditorTest.isEnabled = true
+                if (VALUES_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
             }
 
             else -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
-                    ByteArray.byteArray(transformerStore.transformers[rowToTName(transformerTable.selectedRow)]!!)
+                    ByteArray.byteArray(transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]!!)
                 transformerEditor.setEditable(true)
                 transformerEditorTest.isEnabled = false
             }
@@ -369,223 +510,118 @@ class UI(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerSto
     }
 
     private fun editorTyped() {
-        if (transformerTable.selectedRowCount != 0) {
+        if (TRANSFORMER_TABLE.selectedRowCount != 0) {
             transformerEditorSave.isEnabled = true
         }
     }
-
-    private fun initComponents() {
-        layout = MigLayout("fill,hidemode 3,align center top", "fill")
-        leftPanel.layout = MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][][][]")
-        rightPanel.layout = MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][]")
-
-        headerPanel.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
-
-        mainLabel.text = "Value Autoupdater"
-        mainLabel.font = mainLabel.font.deriveFont(mainLabel.font.style or Font.BOLD)
-        headerPanel.add(mainLabel, "cell 0 0")
-
-        headerNestedPanel.layout = MigLayout("hidemode 3", "[fill]", "[]")
-
-        enabledToggle.text = "Enabled"
-        enabledToggle.addItemListener { e: ItemEvent -> enabledToggle(e) }
-        headerNestedPanel.add(enabledToggle, "cell 0 0")
-        headerPanel.add(headerNestedPanel, "cell 0 1")
-        leftPanel.add(headerPanel, "cell 0 0")
-        leftPanel.add(separator2, "cell 0 1")
-
-        valuesPanel.layout = MigLayout("hidemode 3", "[fill]", "[][][][]")
-
-        valuesLabel.text = "Values to watch"
-        valuesLabel.font = valuesLabel.font.deriveFont(valuesLabel.font.style or Font.BOLD)
-        valuesPanel.add(valuesLabel, "cell 0 0")
-
-        valueSelectorPanel.layout = MigLayout("hidemode 3", "[fill][fill]", "[]")
-
-        valueButtons.layout = MigLayout("hidemode 3", "[fill]", "[][][]")
-
-        valueAdd.text = "Add"
-        valueAdd.addActionListener { valueAdd() }
-        valueButtons.add(valueAdd, "cell 0 0")
-
-        valueEdit.text = "Edit"
-        valueEdit.addActionListener { valueEdit() }
-        valueEdit.isEnabled = false
-        valueButtons.add(valueEdit, "cell 0 1")
-
-        valueRemove.text = "Remove"
-        valueRemove.addActionListener { valueRemove() }
-        valueRemove.isEnabled = false
-        valueButtons.add(valueRemove, "cell 0 2")
-
-        valueSelectorPanel.add(valueButtons, "cell 0 0,aligny top,growy 0")
-
-        valuesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-        valuesTable.model = object : DefaultTableModel(
-            arrayOf(), arrayOf(
-                "", "Name", "Match", "Last value", "Times updated", "Times replaced", "Transformer"
-            )
-        ) {
-            override fun getColumnClass(columnIndex: Int): Class<*> {
-                if (columnIndex == 0) return Boolean::class.javaObjectType
-                return String::class.javaObjectType
-            }
-
-            override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
-                if (columnIndex == 0) return true  // enabled button
-                return false
-            }
-        }
-        val cm = valuesTable.columnModel
-        cm.getColumn(0).resizable = false
-        cm.getColumn(0).width = 25
-        (valuesTable.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
-        valuesTable.selectionModel.addListSelectionListener { tableSelected() }
-
-        valuesTablePanel.setViewportView(valuesTable)
-        valueSelectorPanel.add(valuesTablePanel, "cell 1 0,grow,push,span")
-        valuesPanel.add(valueSelectorPanel, "cell 0 2,grow,push,span")
-        leftPanel.add(valuesPanel, "cell 0 2")
-        leftPanel.add(separator1, "cell 0 3")
-
-        toolsPanel.layout = MigLayout("hidemode 3", "[fill]", "[][]")
-
-        toolsLabel.text = "Enabled tools"
-        toolsLabel.font = toolsLabel.font.deriveFont(toolsLabel.font.style or Font.BOLD)
-        toolsPanel.add(toolsLabel, "cell 0 0")
-
-        toolSelectionPanel.layout = MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")
-
-        proxySel.text = "Proxy"
-        proxySel.addItemListener { e: ItemEvent -> proxySel(e) }
-        toolSelectionPanel.add(proxySel, "cell 0 0")
-
-        scannerSel.text = "Scanner"
-        scannerSel.addItemListener { e: ItemEvent -> scannerSel(e) }
-        toolSelectionPanel.add(scannerSel, "cell 1 0")
-
-        intruderSel.text = "Intruder"
-        intruderSel.addItemListener { e: ItemEvent -> intruderSel(e) }
-        toolSelectionPanel.add(intruderSel, "cell 2 0")
-
-        repeaterSel.text = "Repeater"
-        repeaterSel.addItemListener { e: ItemEvent -> repeaterSel(e) }
-        toolSelectionPanel.add(repeaterSel, "cell 0 1")
-
-        sequencerSel.text = "Sequencer"
-        sequencerSel.addItemListener { e: ItemEvent -> sequencerSel(e) }
-        toolSelectionPanel.add(sequencerSel, "cell 1 1")
-
-        extenderSel.text = "Extender"
-        extenderSel.addItemListener { e: ItemEvent -> extenderSel(e) }
-        toolSelectionPanel.add(extenderSel, "cell 2 1")
-
-        toolsPanel.add(toolSelectionPanel, "cell 0 1")
-        leftPanel.add(toolsPanel, "cell 0 4")
-
-        add(leftPanel, "w 50%,aligny top,growy 0,growx")
-        transformerLabel.text = "Value Transformers"
-        transformerLabel.font = transformerLabel.font.deriveFont(transformerLabel.font.style or Font.BOLD)
-        rightPanel.add(transformerLabel, "cell 0 0")
-
-        transformerSelectorPanel.layout = MigLayout("hidemode 3", "[fill][fill]", "[]")
-
-        transformerButtons.layout = MigLayout("hidemode 3", "[fill]", "[][]")
-
-        transformerAdd.text = "Add"
-        transformerAdd.addActionListener { transformerAdd() }
-        transformerButtons.add(transformerAdd, "cell 0 0")
-
-        transformerRemove.text = "Remove"
-        transformerRemove.addActionListener { transformerRemove() }
-        transformerRemove.isEnabled = false
-        transformerButtons.add(transformerRemove, "cell 0 1")
-
-        transformerSelectorPanel.add(transformerButtons, "cell 0 0,aligny top,growy")
-
-        transformerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-        transformerTable.model = object : DefaultTableModel(
-            arrayOf(), arrayOf(
-                "Name"
-            )
-        ) {}
-        transformerTable.selectionModel.addListSelectionListener { transformerSelected() }
-
-        transformerTablePanel.setViewportView(transformerTable)
-        transformerSelectorPanel.add(transformerTablePanel, "cell 1 0,grow,push,span")
-        rightPanel.add(transformerSelectorPanel, "cell 0 1")
-
-        transformerEditorPanel.layout = MigLayout("hidemode 3", "[]", "[][]")
-        transformerEditor.setEditable(false)
-
-        transformerEditorSave.text = "Save"
-        transformerEditorSave.addActionListener { transformerSave() }
-        transformerEditorSave.isEnabled = false
-        transformerEditorPanel.add(transformerEditorSave, "cell 0 0")
-
-        transformerEditorTest.text = "Test"
-        transformerEditorTest.addActionListener { transformerTest() }
-        transformerEditorTest.isEnabled = false
-        transformerEditorPanel.add(transformerEditorTest, "cell 1 0")
-
-        (transformerEditor.uiComponent() as Container).components.forEach top@{
-            if (it != null && it.name == "messageEditor") {
-                (it as JScrollPane).components.filterIsInstance<JViewport>().forEach { child ->
-                    child.components.forEach { candidate ->
-                        if (candidate.name == "syntaxTextArea") {
-                            (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
-                                override fun keyTyped(e: KeyEvent) {
-                                    this@UI.editorTyped()
-                                }
-                            })
-                            return@top
-                        }
-                    }
-                }
-            }
-        }
-
-        transformerEditorPanel.add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
-        rightPanel.add(transformerEditorPanel, "cell 0 2,grow,push,span")
-        add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
-    }
 }
 
-class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transformerStore: TransformerStore) :
-    JDialog(owner) {
+class AddEditDialog(
+    owner: Window?,
+    private var index: Int,
+    private val itemStore: ItemStore,
+    private val transformerStore: TransformerStore
+) : JDialog(owner) {
+
     private val headerTypeHint = "Matches header names and replaces values "
     private val regexTypeHint = "Uses regex for matches (named group: val)"
-    private var index: Int
-    private val itemStore: ItemStore
-    private val transformerStore: TransformerStore
 
-    private val panel1 = JPanel()
-    private val nameLabel = JLabel()
-    private val nameField = JTextField()
-    private val matchLabel = JLabel()
-    private val matchField = JTextField()
-    private val typeField = JLabel()
-    private val headerButton = JRadioButton()
-    private val regexButton = JRadioButton()
-    private val typeDescription = JLabel()
-    private val transformerLabel = JLabel()
+    private val nameLabel = JLabel("Name")
+    private val nameField = JTextField().apply {
+        addKeyListener(object : KeyAdapter() {
+            override fun keyTyped(e: KeyEvent) {
+                this@AddEditDialog.keyTyped()
+            }
+        })
+    }
+
+    private val matchLabel = JLabel("Match")
+    private val matchField = JTextField().apply {
+        addKeyListener(object : KeyAdapter() {
+            override fun keyTyped(e: KeyEvent) {
+                this@AddEditDialog.keyTyped()
+            }
+        })
+    }
+
+    private val typeField = JLabel("Type")
+
+    private val headerButton = JRadioButton("Header").apply {
+        isSelected = true
+        addItemListener { e: ItemEvent -> headerButtonItemStateChanged(e) }
+    }
+
+    private val regexButton = JRadioButton("Regex").apply {
+        addItemListener { e: ItemEvent -> regexButtonItemStateChanged(e) }
+    }
+
+    private val typeDescription = JLabel(headerTypeHint)
+
+    private val transformerLabel = JLabel("Transformer")
     private val transformerComboBox = JComboBox<String>()
-    private val errorLabel = JLabel()
-    private val panel3 = JPanel()
-    private val okButton = JButton()
-    private val applyButton = JButton()
-    private val cancelButton = JButton()
+
+    private val optionsPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
+        add(nameLabel, "cell 0 0")
+        add(nameField, "cell 1 0,wmin 270,grow 0")
+        add(matchLabel, "cell 0 1")
+        add(matchField, "cell 1 1,wmin 270,grow 0")
+        add(typeField, "cell 0 2")
+        add(headerButton, "cell 1 2")
+        add(regexButton, "cell 1 2")
+        add(typeDescription, "cell 1 3")
+        add(transformerLabel, "cell 0 4")
+        add(transformerComboBox, "cell 1 4")
+    }
+
+    private val errorLabel = JLabel().apply {
+        foreground = Color.RED
+        text = " "
+    }
+
+    private val okButton = JButton("OK").apply {
+        background = UIManager.getColor("Button.background")
+        font = font.deriveFont(font.style or Font.BOLD)
+        addActionListener { ok() }
+    }
+
+    private val applyButton = JButton("Apply").apply {
+        isEnabled = false
+        addActionListener { apply() }
+    }
+
+    private val cancelButton = JButton("Cancel").apply {
+        addActionListener { cancel() }
+    }
+
+    private val buttonsPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+        add(okButton, "west,gapx null 10")
+        add(applyButton, "west")
+        add(cancelButton, "EAST")
+    }
 
     init {
-        this.index = index
-        this.itemStore = itemStore
-        this.transformerStore = transformerStore
-        initComponents()
+        ButtonGroup().apply {
+            add(headerButton)
+            add(regexButton)
+        }
+
+        contentPane.apply {
+            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+            add(optionsPanel, "cell 0 0")
+            add(errorLabel, "cell 0 4")
+            add(buttonsPanel, "cell 0 5")
+        }
+
+        setSize(250, 100)
+        isResizable = false
+        pack()
+        setLocationRelativeTo(owner)
         loadTransformers()
         if (index != -1) {
             loadStoredValues()
         }
-        this.defaultCloseOperation = DISPOSE_ON_CLOSE
+
+        defaultCloseOperation = DISPOSE_ON_CLOSE
     }
 
 
@@ -618,7 +654,7 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
 
     private fun keyTyped() {
         enableApply()
-        showError(" ")
+        errorLabel.text = " "
     }
 
     private fun headerButtonItemStateChanged(e: ItemEvent) {
@@ -651,19 +687,19 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
         val transformer = transformerComboBox.selectedItem as String
 
         if (name == "") {
-            showError("Name field cannot be left blank!")
+            errorLabel.text = "Name field cannot be left blank!"
             return false
         }
 
         if (match == "") {
-            showError("Match field cannot be left blank!")
+            errorLabel.text = "Match field cannot be left blank!"
             return false
         }
 
         if (type == ItemType.REGEX) {
             val err = checkRegexSyntax(match)
             if (err != "") {
-                showError(err)
+                errorLabel.text = err
                 return false
             }
         }
@@ -671,7 +707,7 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
         if (index == -1) {
             val item = Item(match, type, "", true, 0, 0, transformer)
             if (itemStore.items[name] != null) {
-                showError("Entry named \"$name\" already exists!")
+                errorLabel.text = "Entry named \"$name\" already exists!"
                 return false
             }
             itemStore.items[name] = item
@@ -700,93 +736,9 @@ class AddEditDialog(owner: Window?, index: Int, itemStore: ItemStore, transforme
     private fun cancel() {
         this.dispatchEvent(WindowEvent(this, WindowEvent.WINDOW_CLOSING))
     }
-
-    private fun showError(err: String) {
-        errorLabel.text = err
-    }
-
-    private fun initComponents() {
-        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-
-        panel1.layout = MigLayout("hidemode 3", "[fill][fill]", "[][][][]")
-
-        nameLabel.text = "Name"
-        panel1.add(nameLabel, "cell 0 0")
-
-        nameField.addKeyListener(object : KeyAdapter() {
-            override fun keyTyped(e: KeyEvent) {
-                this@AddEditDialog.keyTyped()
-            }
-        })
-        panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
-
-        matchLabel.text = "Match"
-        panel1.add(matchLabel, "cell 0 1")
-
-        matchField.addKeyListener(object : KeyAdapter() {
-            override fun keyTyped(e: KeyEvent) {
-                this@AddEditDialog.keyTyped()
-            }
-        })
-        panel1.add(matchField, "cell 1 1,wmin 270,grow 0")
-
-        typeField.text = "Type"
-        panel1.add(typeField, "cell 0 2")
-
-        headerButton.text = "Header"
-        headerButton.isSelected = true
-        headerButton.addItemListener { e: ItemEvent -> headerButtonItemStateChanged(e) }
-        panel1.add(headerButton, "cell 1 2")
-
-        regexButton.text = "Regex"
-        regexButton.addItemListener { e: ItemEvent -> regexButtonItemStateChanged(e) }
-        panel1.add(regexButton, "cell 1 2")
-
-        typeDescription.text = headerTypeHint
-        panel1.add(typeDescription, "cell 1 3")
-
-        transformerLabel.text = "Transformer"
-        panel1.add(transformerLabel, "cell 0 4")
-
-        panel1.add(transformerComboBox, "cell 1 4")
-
-        contentPane.add(panel1, "cell 0 0")
-
-        errorLabel.foreground = Color.RED
-        showError(" ")
-        contentPane.add(errorLabel, "cell 0 4")
-
-        panel3.layout = MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")
-
-        okButton.text = "OK"
-        okButton.background = UIManager.getColor("Button.background")
-        okButton.font = okButton.font.deriveFont(okButton.font.style or Font.BOLD)
-        okButton.addActionListener { ok() }
-        panel3.add(okButton, "west,gapx null 10")
-
-        applyButton.text = "Apply"
-        applyButton.isEnabled = false
-        applyButton.addActionListener { apply() }
-        panel3.add(applyButton, "west")
-
-        cancelButton.text = "Cancel"
-        cancelButton.addActionListener { cancel() }
-        panel3.add(cancelButton, "EAST")
-        contentPane.add(panel3, "cell 0 5")
-
-        val buttonGroup1 = ButtonGroup()
-        buttonGroup1.add(headerButton)
-        buttonGroup1.add(regexButton)
-
-        setSize(250, 100)
-        isResizable = false
-        pack()
-        setLocationRelativeTo(owner)
-    }
 }
 
 class TransformerAddDialog(owner: Window?, private val transformerStore: TransformerStore) : JDialog(owner) {
-    private val panel1 = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]"))
     private val nameLabel = JLabel("Name")
     private val nameField = JTextField().apply {
         addKeyListener(object : KeyAdapter() {
@@ -795,28 +747,38 @@ class TransformerAddDialog(owner: Window?, private val transformerStore: Transfo
             }
         })
     }
+
+    private val namePanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
+        add(nameLabel, "cell 0 0")
+        add(nameField, "cell 1 0,wmin 270,grow 0")
+    }
+
     private val errorLabel = JLabel(" ").apply {
         foreground = Color.RED
     }
-    private val panel3 = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]"))
+
     private val okButton = JButton("OK").apply {
         background = UIManager.getColor("Button.background")
         font = font.deriveFont(font.style or Font.BOLD)
         addActionListener { if (apply()) close() }
     }
+
     private val cancelButton = JButton("Cancel").apply {
         addActionListener { close() }
     }
 
+    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+        add(okButton, "west,gapx null 10")
+        add(cancelButton, "EAST")
+    }
+
     init {
-        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-        panel1.add(nameLabel, "cell 0 0")
-        panel1.add(nameField, "cell 1 0,wmin 270,grow 0")
-        contentPane.add(panel1, "cell 0 0")
-        contentPane.add(errorLabel, "cell 0 4")
-        panel3.add(okButton, "west,gapx null 10")
-        panel3.add(cancelButton, "EAST")
-        contentPane.add(panel3, "cell 0 5")
+        contentPane.apply {
+            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+            add(namePanel, "cell 0 0")
+            add(errorLabel, "cell 0 4")
+            add(buttonPanel, "cell 0 5")
+        }
 
         setSize(250, 100)
         isResizable = false
@@ -860,8 +822,17 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
         font = Font(Font.MONOSPACED, Font.PLAIN, 12)
         isEditable = false
         lineWrap = true
+
+        val transformed = evalTransformer(value, transformer)
+        if (transformed.err == "") {
+            text = transformed.out
+        } else {
+            nameLabel.text = "Error"
+            nameLabel.foreground = Color.RED
+            text = transformed.err
+        }
     }
-    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]"))
+
     private val okButton = JButton("OK").apply {
         background = UIManager.getColor("Button.background")
         font = font.deriveFont(font.style or Font.BOLD)
@@ -874,22 +845,17 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
         }
     }
 
+    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+        add(okButton, "west,gapx null 10")
+    }
+
     init {
-        contentPane.layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-        contentPane.add(nameLabel, "cell 0 0, wrap")
-
-        val transformed = evalTransformer(value, transformer)
-        if (transformed.err == "") {
-            output.text = transformed.out
-        } else {
-            nameLabel.text = "Error"
-            nameLabel.foreground = Color.RED
-            output.text = transformed.err
+        contentPane.apply {
+            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+            add(nameLabel, "cell 0 0, wrap")
+            add(JScrollPane(output), "grow, push, span")
+            add(buttonPanel, "cell 0 4")
         }
-
-        contentPane.add(JScrollPane(output), "grow, push, span")
-        buttonPanel.add(okButton, "west,gapx null 10")
-        contentPane.add(buttonPanel, "cell 0 4")
 
         pack()
         setLocationRelativeTo(owner)

@@ -292,23 +292,21 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
 
     private val transformerEditor = api.userInterface().createRawEditor().apply {
         setEditable(false)
-        // yeehaw
-        (uiComponent() as Container).components.forEach top@{
-            if (it != null && it.name == "messageEditor") {
-                (it as JScrollPane).components.filterIsInstance<JViewport>().forEach { child ->
-                    child.components.forEach { candidate ->
-                        if (candidate.name == "syntaxTextArea") {
-                            (candidate as JTextArea).addKeyListener(object : KeyAdapter() {
-                                override fun keyTyped(e: KeyEvent) {
-                                    this@UI.editorTyped()
-                                }
-                            })
-                            return@top
-                        }
-                    }
-                }
+
+        (uiComponent() as Container).components
+        .filterNotNull()
+        .firstOrNull { it.name == "messageEditor" }
+        ?.let { it as JScrollPane }
+        ?.components
+        ?.filterIsInstance<JViewport>()
+        ?.flatMap { it.components.asList() }
+        ?.firstOrNull { it.name == "syntaxTextArea" }
+        ?.let { it as JTextArea }
+        ?.addKeyListener(object : KeyAdapter() {
+            override fun keyTyped(e: KeyEvent) {
+                this@UI.editorTyped()
             }
-        }
+        })
     }
 
     private val transformerEditorPanel = JPanel(MigLayout("hidemode 3", "[]", "[][]")).apply {

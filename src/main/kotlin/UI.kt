@@ -1,5 +1,6 @@
 package burp
 
+import kotlin.math.max
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.ByteArray
 import burp.api.montoya.core.ToolType
@@ -31,12 +32,11 @@ val VALUES_TABLE = JTable().apply {
         }
 
         override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
-            if (columnIndex == 0) return true  // enabled button
-            return false
+            return columnIndex == 0  // enabled button
         }
     }
-    columnModel.getColumn(0).resizable = false
-    columnModel.getColumn(0).width = 25
+
+    columnModel.getColumn(0).preferredWidth = 25
 }
 
 val TRANSFORMER_TABLE = JTable().apply {
@@ -286,8 +286,6 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     }
 
     private val transformerEditor = api.userInterface().createRawEditor().apply {
-        setEditable(false)
-
         (uiComponent() as Container).components.filterNotNull().firstOrNull { it.name == "messageEditor" }
             ?.let { it as JScrollPane }?.components?.filterIsInstance<JViewport>()?.flatMap { it.components.asList() }
             ?.firstOrNull { it.name == "syntaxTextArea" }?.let { it as JTextArea }
@@ -299,12 +297,13 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     }
 
     private val transformerEditorPanel = JPanel(MigLayout("hidemode 3", "[]", "[][]")).apply {
+        isVisible = false
         add(transformerEditorSave, "cell 0 0")
         add(transformerEditorTest, "cell 1 0")
         add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
     }
 
-    private val rightPanel = JPanel(MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][]")).apply {
+    private val rightPanel = JPanel(MigLayout("fill,hidemode 1,align left top", "[fill]", "[][][]")).apply {
         add(transformerLabel, "cell 0 0")
         add(transformerSelectorPanel, "cell 0 1")
         add(transformerEditorPanel, "cell 0 2,grow,push,span")
@@ -476,25 +475,15 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         when (TRANSFORMER_TABLE.selectedRowCount) {
             0 -> {
                 transformerRemove.isEnabled = false
-                transformerEditor.contents = ByteArray.byteArray("")
-                transformerEditor.setEditable(false)
-                transformerEditorTest.isEnabled = false
-            }
-
-            1 -> {
-                transformerRemove.isEnabled = true
-                transformerEditor.contents =
-                    ByteArray.byteArray(transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]!!)
-                transformerEditor.setEditable(true)
-                if (VALUES_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
+                transformerEditorPanel.isVisible = false
             }
 
             else -> {
                 transformerRemove.isEnabled = true
                 transformerEditor.contents =
                     ByteArray.byteArray(transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]!!)
-                transformerEditor.setEditable(true)
-                transformerEditorTest.isEnabled = false
+                if (VALUES_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
+                transformerEditorPanel.isVisible = true
             }
         }
     }

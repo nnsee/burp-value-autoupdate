@@ -48,7 +48,7 @@ val TRANSFORMER_TABLE = JTable().apply {
     ) {}
 }
 
-const val TAB_NAME = "Value updater"
+const val TAB_NAME = "Value Tracker"
 var TAB_VISIBLE = false
 var namedRows = mapOf<String, Int>()
 var namedTRows = mapOf<String, Int>()
@@ -138,11 +138,11 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         EXTENSIONS to false,
     )
 
-    private val mainLabel = JLabel("Value Autoupdater").apply {
-        font.deriveFont(font.style or Font.BOLD)
+    private val settingsLabel = JLabel("Settings").apply {
+        font = font.deriveFont(font.style or Font.BOLD)
     }
 
-    private val enabledToggle = JCheckBox("Enabled").apply {
+    private val enabledToggle = JCheckBox("Extension enabled").apply {
         addItemListener { e: ItemEvent -> enabledToggle(e) }
     }
 
@@ -151,14 +151,14 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     }
 
     private val headerPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-        add(mainLabel, "cell 0 0")
+        add(settingsLabel, "cell 0 0")
         add(headerNestedPanel, "cell 0 1")
     }
 
     private val separator2 = JSeparator()
 
-    private val valuesLabel = JLabel("Values to watch").apply {
-        font.deriveFont(font.style or Font.BOLD)
+    private val valuesLabel = JLabel("Values to Track").apply {
+        font = font.deriveFont(font.style or Font.BOLD)
     }
 
     private val valueAdd = JButton("Add").apply {
@@ -186,11 +186,6 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     private val valueSelectorPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
         add(valueButtons, "cell 0 0,aligny top,growy 0")
         add(valuesTablePanel, "cell 1 0,grow,push,span")
-    }
-
-    private val valuesPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][][][]")).apply {
-        add(valuesLabel, "cell 0 0")
-        add(valueSelectorPanel, "cell 0 2,grow,push,span")
     }
 
     private val separator1 = JSeparator()
@@ -246,12 +241,13 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         add(toolSelectionPanel, "cell 0 1")
     }
 
-    private val leftPanel = JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][]")).apply {
-        add(headerPanel, "cell 0 0")
-        add(separator2, "cell 0 1")
-        add(valuesPanel, "cell 0 2")
-        add(separator1, "cell 0 3")
-        add(toolsPanel, "cell 0 4")
+    private val leftPanel = JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][][]")).apply {
+        add(valuesLabel, "cell 0 0")
+        add(valueSelectorPanel, "cell 0 1")
+        add(separator1, "cell 0 2")
+        add(toolsPanel, "cell 0 3")
+        add(separator2, "cell 0 4")
+        add(headerPanel, "cell 0 5")
     }
 
     private val transformerLabel = JLabel("Value Transformers").apply {

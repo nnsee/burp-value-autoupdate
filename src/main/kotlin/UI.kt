@@ -1,6 +1,5 @@
 package burp
 
-import kotlin.math.max
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.ByteArray
 import burp.api.montoya.core.ToolType

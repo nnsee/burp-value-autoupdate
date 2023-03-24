@@ -11,7 +11,6 @@ import java.awt.Container
 import java.awt.Font
 import java.awt.Window
 import java.awt.event.*
-import java.awt.event.ItemEvent.SELECTED
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
@@ -247,7 +246,7 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         add(toolSelectionPanel, "cell 0 1")
     }
 
-    private val leftPanel = JPanel(MigLayout("fill,hidemode 3,align left top", "[fill]", "[][][][][]")).apply {
+    private val leftPanel = JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][]")).apply {
         add(headerPanel, "cell 0 0")
         add(separator2, "cell 0 1")
         add(valuesPanel, "cell 0 2")
@@ -293,20 +292,14 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     private val transformerEditor = api.userInterface().createRawEditor().apply {
         setEditable(false)
 
-        (uiComponent() as Container).components
-        .filterNotNull()
-        .firstOrNull { it.name == "messageEditor" }
-        ?.let { it as JScrollPane }
-        ?.components
-        ?.filterIsInstance<JViewport>()
-        ?.flatMap { it.components.asList() }
-        ?.firstOrNull { it.name == "syntaxTextArea" }
-        ?.let { it as JTextArea }
-        ?.addKeyListener(object : KeyAdapter() {
-            override fun keyTyped(e: KeyEvent) {
-                this@UI.editorTyped()
-            }
-        })
+        (uiComponent() as Container).components.filterNotNull().firstOrNull { it.name == "messageEditor" }
+            ?.let { it as JScrollPane }?.components?.filterIsInstance<JViewport>()?.flatMap { it.components.asList() }
+            ?.firstOrNull { it.name == "syntaxTextArea" }?.let { it as JTextArea }
+            ?.addKeyListener(object : KeyAdapter() {
+                override fun keyTyped(e: KeyEvent) {
+                    this@UI.editorTyped()
+                }
+            })
     }
 
     private val transformerEditorPanel = JPanel(MigLayout("hidemode 3", "[]", "[][]")).apply {
@@ -321,10 +314,13 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         add(transformerEditorPanel, "cell 0 2,grow,push,span")
     }
 
+    private val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel).apply {
+        resizeWeight = 0.5
+    }
+
     init {
         layout = MigLayout("fill,hidemode 3,align center top", "fill")
-        add(leftPanel, "w 50%,aligny top,growy 0,growx")
-        add(rightPanel, "w 50%,aligny top,growy 0,grow,push,span")
+        add(splitPane, "w 100%,aligny top,grow,span")
 
         (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
@@ -435,12 +431,12 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     }
 
     private fun enabledToggle(e: ItemEvent) {
-        extEnabled = e.stateChange == SELECTED
+        extEnabled = e.stateChange == ItemEvent.SELECTED
         ctx.setBoolean("extEnabled", extEnabled)
     }
 
     private fun toolSelected(tool: ToolType, e: ItemEvent) {
-        val enabled = e.stateChange == SELECTED
+        val enabled = e.stateChange == ItemEvent.SELECTED
         enabledTools[tool] = enabled
         ctx.setBoolean("${tool.name}-enabled", enabled)
     }
@@ -657,14 +653,14 @@ class AddEditDialog(
 
     private fun headerButtonItemStateChanged(e: ItemEvent) {
         enableApply()
-        if (e.stateChange == SELECTED) {
+        if (e.stateChange == ItemEvent.SELECTED) {
             typeDescription.text = headerTypeHint
         }
     }
 
     private fun regexButtonItemStateChanged(e: ItemEvent) {
         enableApply()
-        if (e.stateChange == SELECTED) {
+        if (e.stateChange == ItemEvent.SELECTED) {
             typeDescription.text = regexTypeHint
         }
     }

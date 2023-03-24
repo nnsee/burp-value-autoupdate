@@ -19,6 +19,9 @@ class BurpExtender : BurpExtension {
         log.registerStreams(api.logging().output(), api.logging().error())
         log.setLevel(Logger.Level.DEBUG)
 
+        System.setOut(api.logging().output())
+        System.setErr(api.logging().error())
+
         this.api = api
 
         api.extension().setName(EXTENSION_NAME)

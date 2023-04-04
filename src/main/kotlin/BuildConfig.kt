@@ -1,0 +1,4 @@
+package burp
+
+const val COMMIT_HASH = "0000000000000000000000000000000000000000"
+const val VERSION = "0.0.0"

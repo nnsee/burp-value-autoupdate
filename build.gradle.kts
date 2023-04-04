@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import java.io.ByteArrayOutputStream
 
 plugins {
     kotlin("jvm") version "1.8.10"
@@ -30,8 +31,36 @@ dependencies {
     api("net.portswigger.burp.extensions:montoya-api:2023.3")
 }
 
+fun getGitCommitHash(): String {
+    val outputStream = ByteArrayOutputStream()
+    val result = project.exec {
+        commandLine("git", "rev-parse", "HEAD")
+        standardOutput = outputStream
+    }
+    return if (result.exitValue == 0)
+        outputStream.toString("UTF-8").trim()
+    else
+        "0000000000000000000000000000000000000000"
+}
+
+val commitHash = getGitCommitHash()
+
+val generateBuildConfigFile by tasks.registering(Task::class) {
+    // surely there has to be a better way to do this
+    doLast {
+        val targetFile = file("src/main/kotlin/BuildConfig.kt")
+        targetFile.writeText("""
+            package burp
+
+            const val COMMIT_HASH = "$commitHash"
+            const val VERSION = "$version"
+        """.trimIndent())
+    }
+}
+
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
+    dependsOn(generateBuildConfigFile)
 }
 
 tasks.withType<ShadowJar> {

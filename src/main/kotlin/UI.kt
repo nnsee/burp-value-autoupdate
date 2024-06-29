@@ -183,11 +183,11 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
             })
     }
 
-    private val transformerEditorPanel = JPanel(MigLayout("hidemode 3", "[]", "[][]")).apply {
+    private val transformerEditorPanel = JPanel(MigLayout("", "[]", "[][]")).apply {
         isVisible = false
-        add(transformerEditorSave, "cell 0 0")
-        add(transformerEditorTest, "cell 1 0")
-        add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
+        add(transformerEditorSave)
+        add(transformerEditorTest, "wrap")
+        add(transformerEditor.uiComponent(), "span, grow, push")
     }
 
     init {
@@ -198,61 +198,44 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
             }
         }
 
-        layout = MigLayout("fill,hidemode 3,align center top", "fill")
+        layout = MigLayout("fill, align center top", "[fill]")
+
         add(JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-            JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][][]")).apply {
-                add(JLabel("Values to Track").apply {
-                    font = font.deriveFont(font.style or Font.BOLD)
-                }, "cell 0 0")
-                add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-                        add(JButton("Add").apply {
-                            addActionListener { valueAdd() }
-                        }, "cell 0 0")
-                        add(valueEdit, "cell 0 1")
-                        add(valueRemove, "cell 0 2")
-                    }, "cell 0 0,aligny top,growy 0")
-                    add(JScrollPane(VALUES_TABLE), "cell 1 0,grow,push,span")
-                }, "cell 0 1")
-                add(JSeparator(), "cell 0 2")
-                add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-                    add(JLabel("Enabled tools").apply {
-                        font = font.deriveFont(font.style or Font.BOLD)
-                    }, "cell 0 0")
-                    add(JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
-                        toolSelectionMap.values.forEachIndexed { index, checkBox ->
-                            add(checkBox, "cell ${index % 3} ${index / 3}")
-                        }
-                    }, "cell 0 1")
-                }, "cell 0 3")
-                add(JSeparator(), "cell 0 4")
-                add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-                    add(JLabel("Settings").apply {
-                        font = font.deriveFont(font.style or Font.BOLD)
-                    }, "cell 0 0")
-                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
-                        add(enabledToggle, "cell 0 0")
-                    }, "cell 0 1")
-                }, "cell 0 5")
-            }, JPanel(MigLayout("fill,hidemode 1,align left top", "[fill]", "[][][]")).apply {
-                add(JLabel("Value Transformers").apply {
-                    font = font.deriveFont(font.style or Font.BOLD)
-                }, "cell 0 0")
-                add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-                        add(JButton("Add").apply {
-                            addActionListener { transformerAdd() }
-                        }, "cell 0 0")
-                        add(transformerRemove, "cell 0 1")
-                    }, "cell 0 0,aligny top,growy")
-                    add(JScrollPane(TRANSFORMER_TABLE), "cell 1 0,grow,push,span")
-                }, "cell 0 1")
-                add(transformerEditorPanel, "cell 0 2,grow,push,span")
+            JPanel(MigLayout("fillx, align left top", "[fill]")).apply {
+                add(JLabel("Values to Track").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+                add(JPanel(MigLayout("", "[fill][fill]")).apply {
+                    add(JPanel(MigLayout("", "[fill]")).apply {
+                        add(JButton("Add").apply { addActionListener { valueAdd() } }, "wrap")
+                        add(valueEdit, "wrap")
+                        add(valueRemove, "wrap")
+                    }, "aligny top, growy 0")
+                    add(JScrollPane(VALUES_TABLE), "grow, push")
+                }, "wrap")
+                add(JSeparator(), "growx, wrap")
+                add(JLabel("Enabled tools").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+                add(JPanel(MigLayout("", "[fill][fill][fill]")).apply {
+                    toolSelectionMap.values.forEachIndexed { index, checkBox ->
+                        add(checkBox, "cell ${index % 3} ${index / 3}")
+                    }
+                }, "wrap")
+                add(JSeparator(), "growx, wrap")
+                add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+                add(JPanel(MigLayout()).apply { add(enabledToggle) }, "wrap")
+            },
+            JPanel(MigLayout("fill, align left top", "[fill]")).apply {
+                add(JLabel("Value Transformers").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+                add(JPanel(MigLayout("", "[fill][fill]")).apply {
+                    add(JPanel(MigLayout("", "[fill]")).apply {
+                        add(JButton("Add").apply { addActionListener { transformerAdd() } }, "wrap")
+                        add(transformerRemove, "wrap")
+                    }, "aligny top, growy")
+                    add(JScrollPane(TRANSFORMER_TABLE), "grow, push")
+                }, "wrap")
+                add(transformerEditorPanel, "grow, push")
             }
         ).apply {
             resizeWeight = 0.5
-        }, "w 100%,aligny top,grow,span"
-        )
+        }, "grow, push, span")
 
         (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
@@ -284,7 +267,6 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         reloadValuesTable(itemStore.items)
         reloadTransformersTable(transformerStore.transformers)
     }
-
 
     fun isEnabled(tool: ToolType): Boolean {
         return extEnabled and enabledTools[tool]!!
@@ -498,34 +480,32 @@ class AddEditDialog(
         }
 
         contentPane.apply {
-            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
-                add(JLabel("Name"), "cell 0 0")
-                add(nameField, "cell 1 0,wmin 270,grow 0")
-                add(JLabel("Match"), "cell 0 1")
-                add(matchField, "cell 1 1,wmin 270,grow 0")
-                add(JLabel("Type"), "cell 0 2")
-                add(headerButton, "cell 1 2")
-                add(regexButton, "cell 1 2")
-                add(typeDescription, "cell 1 3")
-                add(JLabel("Transformer"), "cell 0 4")
-                add(transformerComboBox, "cell 1 4")
-            }, "cell 0 0")
-            add(errorLabel, "cell 0 4")
-            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+            layout = MigLayout("fillx, hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][]")
+            add(JLabel("Name"), "cell 0 0")
+            add(nameField, "cell 1 0, span 4, growx, wmin 270, wrap")
+            add(JLabel("Match"), "cell 0 1")
+            add(matchField, "cell 1 1, span 4, growx, wmin 270, wrap")
+            add(JLabel("Type"), "cell 0 2")
+            add(headerButton, "cell 1 2, split 2")
+            add(regexButton, "wrap")
+            add(typeDescription, "cell 1 3, span 4, wrap")
+            add(JLabel("Transformer"), "cell 0 4")
+            add(transformerComboBox, "cell 1 4, span 4, growx, wrap")
+            add(errorLabel, "cell 0 5, span 5, wrap")
+            add(JPanel(MigLayout("fillx, insets 0", "[fill][fill][fill][fill][fill]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)
                     addActionListener { ok() }
-                }, "west,gapx null 10")
-                add(applyButton, "west")
+                }, "split 3")
+                add(applyButton)
                 add(JButton("Cancel").apply {
                     addActionListener { cancel() }
-                }, "EAST")
-            }, "cell 0 5")
+                })
+            }, "cell 0 6, span 5, align right, wrap")
         }
 
-        setSize(250, 100)
+        setSize(400, 300)
         isResizable = false
         pack()
         setLocationRelativeTo(owner)
@@ -536,7 +516,6 @@ class AddEditDialog(
 
         defaultCloseOperation = DISPOSE_ON_CLOSE
     }
-
 
     private fun loadTransformers() {
         transformerComboBox.addItem("")
@@ -581,19 +560,19 @@ class AddEditDialog(
         val type = if (regexButton.isSelected) ItemType.REGEX else ItemType.HEADER
         val transformer = transformerComboBox.selectedItem as String
 
-        if (name == "") {
+        if (name.isEmpty()) {
             errorLabel.text = "Name field cannot be left blank!"
             return false
         }
 
-        if (match == "") {
+        if (match.isEmpty()) {
             errorLabel.text = "Match field cannot be left blank!"
             return false
         }
 
         if (type == ItemType.REGEX) {
             val err = checkRegexSyntax(match)
-            if (err != "") {
+            if (err.isNotEmpty()) {
                 errorLabel.text = err
                 return false
             }
@@ -648,13 +627,13 @@ class TransformerAddDialog(owner: Window?, private val transformerStore: Transfo
 
     init {
         contentPane.apply {
-            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
+            layout = MigLayout("", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+            add(JPanel(MigLayout("", "[fill][fill]", "[][][][]")).apply {
                 add(JLabel("Name"), "cell 0 0")
                 add(nameField, "cell 1 0,wmin 270,grow 0")
             }, "cell 0 0")
             add(errorLabel, "cell 0 4")
-            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+            add(JPanel(MigLayout("fillx", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)
@@ -721,10 +700,10 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
 
     init {
         contentPane.apply {
-            layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
+            layout = MigLayout("", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
             add(nameLabel, "cell 0 0, wrap")
             add(JScrollPane(output), "grow, push, span")
-            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+            add(JPanel(MigLayout("fillx", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)

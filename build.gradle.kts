@@ -1,7 +1,7 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.ByteArrayOutputStream
+import java.nio.file.Files
+import java.nio.file.Paths
 
 plugins {
     kotlin("jvm") version "2.0.0"
@@ -28,29 +28,17 @@ dependencies {
 }
 
 fun getGitCommitHash(): String {
-    val outputStream = ByteArrayOutputStream()
-    val result = project.exec {
-        commandLine("git", "rev-parse", "HEAD")
-        standardOutput = outputStream
+    return try {
+        val ref = Files.readAllLines(Paths.get(".git/HEAD"))[0].split(": ")[1]
+        Files.readAllLines(Paths.get(".git/$ref"))[0].trim()
+    } catch (e: Exception) {
+        "unknown"
     }
-    return if (result.exitValue == 0)
-        outputStream.toString("UTF-8").trim()
-    else
-        "0000000000000000000000000000000000000000"
 }
 
-val commitHash = getGitCommitHash()
-
-val generateBuildConfigFile by tasks.registering(Task::class) {
-    // surely there has to be a better way to do this
-    doLast {
-        val targetFile = file("src/main/kotlin/BuildConfig.kt")
-        targetFile.writeText("""
-            package burp
-
-            const val COMMIT_HASH = "$commitHash"
-            const val VERSION = "$version"
-        """.trimIndent())
+tasks.processResources {
+    filesMatching("version.properties") {
+        expand(mapOf("commitHash" to getGitCommitHash(), "version" to version))
     }
 }
 
@@ -58,9 +46,6 @@ kotlin {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
-tasks.withType<KotlinCompile> {
-    dependsOn(generateBuildConfigFile)
-}
 
 tasks.withType<ShadowJar> {
     exclude("**/*.kotlin_metadata")

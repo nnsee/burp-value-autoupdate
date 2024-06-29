@@ -4,7 +4,6 @@ import burp.api.montoya.BurpExtension
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.handler.*
 import burp.api.montoya.http.message.requests.HttpRequest
-import burp.api.montoya.http.message.responses.HttpResponse
 
 const val EXTENSION_NAME = "Value Autoupdater"
 
@@ -32,7 +31,7 @@ class BurpExtender : BurpExtension {
 
         api.http().registerHttpHandler(ExtHttpHandler())
 
-        log.info("Initialized $EXTENSION_NAME")
+        log.info("Initialized $EXTENSION_NAME $VERSION (${COMMIT_HASH.take(8)})")
     }
 
     inner class ExtHttpHandler : HttpHandler {

@@ -17,11 +17,10 @@ class BurpExtender : BurpExtension {
     private lateinit var api: MontoyaApi
 
     override fun initialize(api: MontoyaApi) {
-        log.registerStreams(api.logging().output(), api.logging().error())
-        log.setLevel(Logger.Level.DEBUG)
-
-        System.setOut(api.logging().output())
-        System.setErr(api.logging().error())
+        Log.init(api)
+        Log.setLevel(Log.Level.DEBUG)
+        System.setOut(Log.output())
+        System.setErr(Log.error())
 
         val properties = Properties().apply {
             object {}.javaClass.classLoader.getResourceAsStream("version.properties").use { load(it) }
@@ -33,11 +32,11 @@ class BurpExtender : BurpExtension {
         items = ItemStore(api.persistence().preferences())
         transformers = TransformerStore(api.persistence().preferences())
         ui = UI(api, items, transformers)
-        replacer = Replacer(api, items, transformers)
+        replacer = Replacer(items, transformers)
 
         api.http().registerHttpHandler(ExtHttpHandler())
 
-        log.info("Initialized $EXTENSION_NAME ${properties.getProperty("version")} (${properties.getProperty("commitHash").take(8)})")
+        Log.info("Initialized $EXTENSION_NAME ${properties.getProperty("version")} (${properties.getProperty("commitHash").take(8)})")
     }
 
     inner class ExtHttpHandler : HttpHandler {

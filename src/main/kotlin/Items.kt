@@ -2,7 +2,6 @@ package burp
 
 import burp.api.montoya.persistence.Preferences
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -25,18 +24,16 @@ data class Item(
 
 typealias Items = MutableMap<String, Item> // name -> item
 
-class ItemStore(ctx: Preferences) {
-    private val ctx: Preferences
+class ItemStore(private val ctx: Preferences) {
     var items: Items
 
     init {
-        this.ctx = ctx
         this.items = load()
     }
 
     private fun load(): Items {
         // loads and returns items from persistent storage
-        var jsonStr = ctx.getString(ITEM_STORE) ?: "{}"
+        val jsonStr = ctx.getString(ITEM_STORE) ?: "{}"
 
         return Json.decodeFromString(jsonStr)
     }
@@ -46,6 +43,7 @@ class ItemStore(ctx: Preferences) {
         ctx.setString(ITEM_STORE, Json.encodeToString(items))
     }
 
+    @Suppress("unused")
     fun nuke() {
         ctx.deleteString(ITEM_STORE)
     }

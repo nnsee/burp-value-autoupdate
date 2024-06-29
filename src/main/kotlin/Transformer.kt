@@ -1,8 +1,6 @@
 package burp
 
 import burp.api.montoya.persistence.Preferences
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.graalvm.polyglot.Context
@@ -25,7 +23,7 @@ fun initTransformerBundle(): Value? {
         .build()
     val resource = pluginClassLoader.getResourceAsStream("bundle.mjs")
     if (resource == null) {
-        log.error("Failed to load bundled JavaScript libraries!")
+        Log.error("Failed to load bundled JavaScript libraries!")
         return null
     }
     val src = InputStreamReader(resource)
@@ -34,7 +32,7 @@ fun initTransformerBundle(): Value? {
 }
 
 fun evalTransformer(value: String, transformer: String): TransformerResult {
-    var res = TransformerResult("", "")
+    val res = TransformerResult("", "")
 
     if (!DONE_LIB_INIT) {
         LIB = initTransformerBundle()
@@ -46,12 +44,7 @@ fun evalTransformer(value: String, transformer: String): TransformerResult {
     try {
         res.out = context.eval("js", transformer).asString()
     } catch (e: Exception) {
-        var error = "Transformer exception!"
-        e.message?.let {
-            error += "\n${it}"
-            res.err = it
-        }
-        log.error(error)
+        Log.error("Transformer exception!", e)
     }
     context.close()
 
@@ -60,19 +53,16 @@ fun evalTransformer(value: String, transformer: String): TransformerResult {
 
 typealias Transformers = MutableMap<String, String> // name -> transformer
 
-class TransformerStore(ctx: Preferences) {
-    // todo: unify stores somehow
-    private val ctx: Preferences
+class TransformerStore(private val ctx: Preferences) {
     var transformers: Transformers
 
     init {
-        this.ctx = ctx
         this.transformers = load()
     }
 
     private fun load(): Transformers {
         // loads and returns transformers from persistent storage
-        var jsonStr = ctx.getString(TRANSFORMER_STORE) ?: "{}"
+        val jsonStr = ctx.getString(TRANSFORMER_STORE) ?: "{}"
 
         return Json.decodeFromString(jsonStr)
     }
@@ -82,6 +72,7 @@ class TransformerStore(ctx: Preferences) {
         ctx.setString(TRANSFORMER_STORE, Json.encodeToString(transformers))
     }
 
+    @Suppress("unused")
     fun nuke() {
         ctx.deleteString(TRANSFORMER_STORE)
     }

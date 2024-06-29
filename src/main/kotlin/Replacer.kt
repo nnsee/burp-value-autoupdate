@@ -1,6 +1,5 @@
 package burp
 
-import burp.api.montoya.MontoyaApi
 import com.google.re2j.Pattern
 import com.google.re2j.PatternSyntaxException
 
@@ -43,7 +42,7 @@ class RegexStrategy : ReplaceStrategy {
         val res = Response(false, "")
 
         if (match !in regexCache) {
-            log.debug("First time seeing pattern, compiling: $match")
+            Log.debug("First time seeing pattern, compiling: $match")
             regexCache[match] = Pattern.compile(match, Pattern.MULTILINE)
         }
 
@@ -73,21 +72,11 @@ class HeaderStrategy : ReplaceStrategy {
     }
 }
 
-class Replacer(api: MontoyaApi, itemStore: ItemStore, transformerStore: TransformerStore) {
-    private val itemStore: ItemStore
-    private val transformerStore: TransformerStore
-    private val api: MontoyaApi
-
+class Replacer(private val itemStore: ItemStore, private val transformerStore: TransformerStore) {
     private val strategies: Map<ItemType, ReplaceStrategy> = mapOf(
         ItemType.REGEX to RegexStrategy(),
         ItemType.HEADER to HeaderStrategy(),
     )
-
-    init {
-        this.itemStore = itemStore
-        this.transformerStore = transformerStore
-        this.api = api
-    }
 
     fun handleRequest(request: String): ReplaceResult {
         // replaces values if necessary
@@ -103,7 +92,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore, transformerStore: Transfor
                 result.matched = true
                 result.values.add(ReplacedValue(it.key, it.value.lastMatch))
                 replaced(it.key, it.value.replaceCount)
-                log.debug("Found placeholder for item: ${it.key}")
+                Log.debug("Found placeholder for item: ${it.key}")
             }
         }
 
@@ -126,7 +115,7 @@ class Replacer(api: MontoyaApi, itemStore: ItemStore, transformerStore: Transfor
                 result.matched = true
                 result.values.add(ReplacedValue(it.key, resp.contents))
                 updated(it.key, resp.contents, it.value.matchCount)
-                log.debug("Replaced value for: ${it.key}, new value ${resp.contents}")
+                Log.debug("Replaced value for: ${it.key}, new value ${resp.contents}")
             }
         }
 

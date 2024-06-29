@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ee.nns.updater"
-version = "0.3.0"
+version = "0.3.1"
 
 repositories {
     mavenCentral()
@@ -24,7 +24,7 @@ dependencies {
     implementation("org.graalvm.sdk:graal-sdk:24.0.1")
     implementation("org.graalvm.truffle:truffle-api:24.0.1")
     implementation("org.graalvm.js:js:23.0.4")
-    api("net.portswigger.burp.extensions:montoya-api:2023.3")
+    api("net.portswigger.burp.extensions:montoya-api:2023.12.1")
 }
 
 fun getGitCommitHash(): String {
@@ -37,6 +37,8 @@ fun getGitCommitHash(): String {
 }
 
 tasks.processResources {
+    inputs.property("version", version)
+    inputs.property("commitHash", getGitCommitHash())
     filesMatching("version.properties") {
         expand(mapOf("commitHash" to getGitCommitHash(), "version" to version))
     }

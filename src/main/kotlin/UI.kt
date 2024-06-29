@@ -619,7 +619,7 @@ class AddEditDialog(
         val name = rowToName(index)
         val item = itemStore.items[name]
         if (item == null) {
-            log.debug("Failed to get name for row $index")
+            Log.debug("Failed to get name for row $index")
             return
         }
         nameField.text = name
@@ -694,17 +694,17 @@ class AddEditDialog(
             }
             itemStore.items[name] = item
             index = VALUES_TABLE.rowCount
-            log.debug("New item at index $index: $item")
+            Log.debug("New item at index $index: $item")
         } else {
             val item = itemStore.items[rowToName(index)]
             if (item == null) {
-                log.debug("Failed to get name for row $index")
+                Log.debug("Failed to get name for row $index")
                 return false
             }
             item.match = match
             item.type = type
             item.transformer = transformer
-            log.debug("Edited item at index $index: $item")
+            Log.debug("Edited item at index $index: $item")
         }
 
         nameField.isEnabled = false

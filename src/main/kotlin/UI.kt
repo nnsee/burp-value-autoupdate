@@ -488,11 +488,21 @@ class AddEditDialog(
 
     private val headerButton = JRadioButton("Header").apply {
         isSelected = true
-        addItemListener { e: ItemEvent -> headerButtonItemStateChanged(e) }
+        addItemListener { e: ItemEvent ->
+            applyButton.isEnabled = true
+            if (e.stateChange == ItemEvent.SELECTED) {
+                typeDescription.text = headerTypeHint
+            }
+        }
     }
 
     private val regexButton = JRadioButton("Regex").apply {
-        addItemListener { e: ItemEvent -> regexButtonItemStateChanged(e) }
+        addItemListener { e: ItemEvent ->
+            applyButton.isEnabled = true
+            if (e.stateChange == ItemEvent.SELECTED) {
+                typeDescription.text = regexTypeHint
+            }
+        }
     }
 
     private val typeDescription = JLabel(headerTypeHint)
@@ -584,26 +594,8 @@ class AddEditDialog(
     }
 
     private fun keyTyped() {
-        enableApply()
-        errorLabel.text = " "
-    }
-
-    private fun headerButtonItemStateChanged(e: ItemEvent) {
-        enableApply()
-        if (e.stateChange == ItemEvent.SELECTED) {
-            typeDescription.text = headerTypeHint
-        }
-    }
-
-    private fun regexButtonItemStateChanged(e: ItemEvent) {
-        enableApply()
-        if (e.stateChange == ItemEvent.SELECTED) {
-            typeDescription.text = regexTypeHint
-        }
-    }
-
-    private fun enableApply() {
         applyButton.isEnabled = true
+        errorLabel.text = " "
     }
 
     private fun ok() {

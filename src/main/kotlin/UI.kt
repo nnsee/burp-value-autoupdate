@@ -141,6 +141,8 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         EXTENSIONS to false,
     )
 
+    private val toolSelectionMap = mutableMapOf<ToolType, JCheckBox>()
+
     private val enabledToggle = JCheckBox("Extension enabled").apply {
         addItemListener { e: ItemEvent -> enabledToggle(e) }
     }
@@ -153,78 +155,6 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     private val valueRemove = JButton("Remove").apply {
         addActionListener { valueRemove() }
         isEnabled = false
-    }
-
-    private val proxySel = JCheckBox("Proxy").apply {
-        addItemListener { e: ItemEvent -> toolSelected(PROXY, e) }
-    }
-
-    private val scannerSel = JCheckBox("Scanner").apply {
-        addItemListener { e: ItemEvent -> toolSelected(SCANNER, e) }
-    }
-
-    private val intruderSel = JCheckBox("Intruder").apply {
-        addItemListener { e: ItemEvent -> toolSelected(INTRUDER, e) }
-    }
-
-    private val repeaterSel = JCheckBox("Repeater").apply {
-        addItemListener { e: ItemEvent -> toolSelected(REPEATER, e) }
-    }
-
-    private val sequencerSel = JCheckBox("Sequencer").apply {
-        addItemListener { e: ItemEvent -> toolSelected(SEQUENCER, e) }
-    }
-
-    private val extenderSel = JCheckBox("Extensions").apply {
-        addItemListener { e: ItemEvent -> toolSelected(EXTENSIONS, e) }
-    }
-
-    private val toolSelectionMap = mapOf(
-        PROXY to proxySel,
-        SCANNER to scannerSel,
-        INTRUDER to intruderSel,
-        REPEATER to repeaterSel,
-        SEQUENCER to sequencerSel,
-        EXTENSIONS to extenderSel,
-    )
-
-    private val leftPanel = JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][][]")).apply {
-        add(JLabel("Values to Track").apply {
-            font = font.deriveFont(font.style or Font.BOLD)
-        }, "cell 0 0")
-        add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-            add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-                add(JButton("Add").apply {
-                    addActionListener { valueAdd() }
-                }, "cell 0 0")
-                add(valueEdit, "cell 0 1")
-                add(valueRemove, "cell 0 2")
-            }, "cell 0 0,aligny top,growy 0")
-            add(JScrollPane(VALUES_TABLE), "cell 1 0,grow,push,span")
-        }, "cell 0 1")
-        add(JSeparator(), "cell 0 2")
-        add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-            add(JLabel("Enabled tools").apply {
-                font = font.deriveFont(font.style or Font.BOLD)
-            }, "cell 0 0")
-            add(JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
-                add(proxySel, "cell 0 0")
-                add(scannerSel, "cell 1 0")
-                add(intruderSel, "cell 2 0")
-                add(repeaterSel, "cell 0 1")
-                add(sequencerSel, "cell 1 1")
-                add(extenderSel, "cell 2 1")
-            }, "cell 0 1")
-        }, "cell 0 3")
-        add(JSeparator(), "cell 0 4")
-        add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-            add(JLabel("Settings").apply {
-                font = font.deriveFont(font.style or Font.BOLD)
-            }, "cell 0 0")
-            add(JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
-                add(enabledToggle, "cell 0 0")
-            }, "cell 0 1")
-        }, "cell 0 5")
     }
 
     private val transformerRemove = JButton("Remove").apply {
@@ -260,27 +190,69 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         add(transformerEditor.uiComponent(), "cell 0 1,grow,push,span")
     }
 
-    private val rightPanel = JPanel(MigLayout("fill,hidemode 1,align left top", "[fill]", "[][][]")).apply {
-        add(JLabel("Value Transformers").apply {
-            font = font.deriveFont(font.style or Font.BOLD)
-        }, "cell 0 0")
-        add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-            add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-                add(JButton("Add").apply {
-                    addActionListener { transformerAdd() }
-                }, "cell 0 0")
-                add(transformerRemove, "cell 0 1")
-            }, "cell 0 0,aligny top,growy")
-            add(JScrollPane(TRANSFORMER_TABLE), "cell 1 0,grow,push,span")
-        }, "cell 0 1")
-        add(transformerEditorPanel, "cell 0 2,grow,push,span")
-    }
-
     init {
+        entries.filter { it in enabledTools }.forEach { tool ->
+            toolSelectionMap[tool] = JCheckBox(tool.toolName()).apply {
+                isSelected = enabledTools[tool] ?: false
+                addItemListener { e: ItemEvent -> toolSelected(tool, e) }
+            }
+        }
+
         layout = MigLayout("fill,hidemode 3,align center top", "fill")
-        add(JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel).apply {
+        add(JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+            JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][][]")).apply {
+                add(JLabel("Values to Track").apply {
+                    font = font.deriveFont(font.style or Font.BOLD)
+                }, "cell 0 0")
+                add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+                        add(JButton("Add").apply {
+                            addActionListener { valueAdd() }
+                        }, "cell 0 0")
+                        add(valueEdit, "cell 0 1")
+                        add(valueRemove, "cell 0 2")
+                    }, "cell 0 0,aligny top,growy 0")
+                    add(JScrollPane(VALUES_TABLE), "cell 1 0,grow,push,span")
+                }, "cell 0 1")
+                add(JSeparator(), "cell 0 2")
+                add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+                    add(JLabel("Enabled tools").apply {
+                        font = font.deriveFont(font.style or Font.BOLD)
+                    }, "cell 0 0")
+                    add(JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
+                        toolSelectionMap.values.forEachIndexed { index, checkBox ->
+                            add(checkBox, "cell ${index % 3} ${index / 3}")
+                        }
+                    }, "cell 0 1")
+                }, "cell 0 3")
+                add(JSeparator(), "cell 0 4")
+                add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+                    add(JLabel("Settings").apply {
+                        font = font.deriveFont(font.style or Font.BOLD)
+                    }, "cell 0 0")
+                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
+                        add(enabledToggle, "cell 0 0")
+                    }, "cell 0 1")
+                }, "cell 0 5")
+            }, JPanel(MigLayout("fill,hidemode 1,align left top", "[fill]", "[][][]")).apply {
+                add(JLabel("Value Transformers").apply {
+                    font = font.deriveFont(font.style or Font.BOLD)
+                }, "cell 0 0")
+                add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+                    add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+                        add(JButton("Add").apply {
+                            addActionListener { transformerAdd() }
+                        }, "cell 0 0")
+                        add(transformerRemove, "cell 0 1")
+                    }, "cell 0 0,aligny top,growy")
+                    add(JScrollPane(TRANSFORMER_TABLE), "cell 1 0,grow,push,span")
+                }, "cell 0 1")
+                add(transformerEditorPanel, "cell 0 2,grow,push,span")
+            }
+        ).apply {
             resizeWeight = 0.5
-        }, "w 100%,aligny top,grow,span")
+        }, "w 100%,aligny top,grow,span"
+        )
 
         (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }

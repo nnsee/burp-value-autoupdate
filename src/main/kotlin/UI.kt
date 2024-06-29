@@ -141,31 +141,8 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         EXTENSIONS to false,
     )
 
-    private val settingsLabel = JLabel("Settings").apply {
-        font = font.deriveFont(font.style or Font.BOLD)
-    }
-
     private val enabledToggle = JCheckBox("Extension enabled").apply {
         addItemListener { e: ItemEvent -> enabledToggle(e) }
-    }
-
-    private val headerNestedPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
-        add(enabledToggle, "cell 0 0")
-    }
-
-    private val headerPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-        add(settingsLabel, "cell 0 0")
-        add(headerNestedPanel, "cell 0 1")
-    }
-
-    private val separator2 = JSeparator()
-
-    private val valuesLabel = JLabel("Values to Track").apply {
-        font = font.deriveFont(font.style or Font.BOLD)
-    }
-
-    private val valueAdd = JButton("Add").apply {
-        addActionListener { valueAdd() }
     }
 
     private val valueEdit = JButton("Edit").apply {
@@ -176,25 +153,6 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     private val valueRemove = JButton("Remove").apply {
         addActionListener { valueRemove() }
         isEnabled = false
-    }
-
-    private val valueButtons = JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
-        add(valueAdd, "cell 0 0")
-        add(valueEdit, "cell 0 1")
-        add(valueRemove, "cell 0 2")
-    }
-
-    private val valuesTablePanel = JScrollPane(VALUES_TABLE)
-
-    private val valueSelectorPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-        add(valueButtons, "cell 0 0,aligny top,growy 0")
-        add(valuesTablePanel, "cell 1 0,grow,push,span")
-    }
-
-    private val separator1 = JSeparator()
-
-    private val toolsLabel = JLabel("Enabled tools").apply {
-        font = font.deriveFont(font.style or Font.BOLD)
     }
 
     private val proxySel = JCheckBox("Proxy").apply {
@@ -230,52 +188,48 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         EXTENSIONS to extenderSel,
     )
 
-    private val toolSelectionPanel = JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
-        add(proxySel, "cell 0 0")
-        add(scannerSel, "cell 1 0")
-        add(intruderSel, "cell 2 0")
-        add(repeaterSel, "cell 0 1")
-        add(sequencerSel, "cell 1 1")
-        add(extenderSel, "cell 2 1")
-    }
-
-    private val toolsPanel = JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-        add(toolsLabel, "cell 0 0")
-        add(toolSelectionPanel, "cell 0 1")
-    }
-
     private val leftPanel = JPanel(MigLayout("fillx,hidemode 3,align left top", "[fill]", "[][][][][][]")).apply {
-        add(valuesLabel, "cell 0 0")
-        add(valueSelectorPanel, "cell 0 1")
-        add(separator1, "cell 0 2")
-        add(toolsPanel, "cell 0 3")
-        add(separator2, "cell 0 4")
-        add(headerPanel, "cell 0 5")
-    }
-
-    private val transformerLabel = JLabel("Value Transformers").apply {
-        font = font.deriveFont(font.style or Font.BOLD)
-    }
-
-    private val transformerAdd = JButton("Add").apply {
-        addActionListener { transformerAdd() }
+        add(JLabel("Values to Track").apply {
+            font = font.deriveFont(font.style or Font.BOLD)
+        }, "cell 0 0")
+        add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+            add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+                add(JButton("Add").apply {
+                    addActionListener { valueAdd() }
+                }, "cell 0 0")
+                add(valueEdit, "cell 0 1")
+                add(valueRemove, "cell 0 2")
+            }, "cell 0 0,aligny top,growy 0")
+            add(JScrollPane(VALUES_TABLE), "cell 1 0,grow,push,span")
+        }, "cell 0 1")
+        add(JSeparator(), "cell 0 2")
+        add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+            add(JLabel("Enabled tools").apply {
+                font = font.deriveFont(font.style or Font.BOLD)
+            }, "cell 0 0")
+            add(JPanel(MigLayout("hidemode 3", "[fill][fill][fill]", "[][]")).apply {
+                add(proxySel, "cell 0 0")
+                add(scannerSel, "cell 1 0")
+                add(intruderSel, "cell 2 0")
+                add(repeaterSel, "cell 0 1")
+                add(sequencerSel, "cell 1 1")
+                add(extenderSel, "cell 2 1")
+            }, "cell 0 1")
+        }, "cell 0 3")
+        add(JSeparator(), "cell 0 4")
+        add(JPanel(MigLayout("hidemode 3", "[fill]", "[][][]")).apply {
+            add(JLabel("Settings").apply {
+                font = font.deriveFont(font.style or Font.BOLD)
+            }, "cell 0 0")
+            add(JPanel(MigLayout("hidemode 3", "[fill]", "[]")).apply {
+                add(enabledToggle, "cell 0 0")
+            }, "cell 0 1")
+        }, "cell 0 5")
     }
 
     private val transformerRemove = JButton("Remove").apply {
         addActionListener { transformerRemove() }
         isEnabled = false
-    }
-
-    private val transformerButtons = JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
-        add(transformerAdd, "cell 0 0")
-        add(transformerRemove, "cell 0 1")
-    }
-
-    private val transformerTablePanel = JScrollPane(TRANSFORMER_TABLE)
-
-    private val transformerSelectorPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
-        add(transformerButtons, "cell 0 0,aligny top,growy")
-        add(transformerTablePanel, "cell 1 0,grow,push,span")
     }
 
     private val transformerEditorSave = JButton("Save").apply {
@@ -307,18 +261,26 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     }
 
     private val rightPanel = JPanel(MigLayout("fill,hidemode 1,align left top", "[fill]", "[][][]")).apply {
-        add(transformerLabel, "cell 0 0")
-        add(transformerSelectorPanel, "cell 0 1")
+        add(JLabel("Value Transformers").apply {
+            font = font.deriveFont(font.style or Font.BOLD)
+        }, "cell 0 0")
+        add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[]")).apply {
+            add(JPanel(MigLayout("hidemode 3", "[fill]", "[][]")).apply {
+                add(JButton("Add").apply {
+                    addActionListener { transformerAdd() }
+                }, "cell 0 0")
+                add(transformerRemove, "cell 0 1")
+            }, "cell 0 0,aligny top,growy")
+            add(JScrollPane(TRANSFORMER_TABLE), "cell 1 0,grow,push,span")
+        }, "cell 0 1")
         add(transformerEditorPanel, "cell 0 2,grow,push,span")
-    }
-
-    private val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel).apply {
-        resizeWeight = 0.5
     }
 
     init {
         layout = MigLayout("fill,hidemode 3,align center top", "fill")
-        add(splitPane, "w 100%,aligny top,grow,span")
+        add(JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel).apply {
+            resizeWeight = 0.5
+        }, "w 100%,aligny top,grow,span")
 
         (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
@@ -508,7 +470,6 @@ class AddEditDialog(
     private val headerTypeHint = "Matches header names and replaces values "
     private val regexTypeHint = "Uses regex for matches (named group: val)"
 
-    private val nameLabel = JLabel("Name")
     private val nameField = JTextField().apply {
         addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
@@ -517,7 +478,6 @@ class AddEditDialog(
         })
     }
 
-    private val matchLabel = JLabel("Match")
     private val matchField = JTextField().apply {
         addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
@@ -525,8 +485,6 @@ class AddEditDialog(
             }
         })
     }
-
-    private val typeField = JLabel("Type")
 
     private val headerButton = JRadioButton("Header").apply {
         isSelected = true
@@ -539,46 +497,16 @@ class AddEditDialog(
 
     private val typeDescription = JLabel(headerTypeHint)
 
-    private val transformerLabel = JLabel("Transformer")
     private val transformerComboBox = JComboBox<String>()
-
-    private val optionsPanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
-        add(nameLabel, "cell 0 0")
-        add(nameField, "cell 1 0,wmin 270,grow 0")
-        add(matchLabel, "cell 0 1")
-        add(matchField, "cell 1 1,wmin 270,grow 0")
-        add(typeField, "cell 0 2")
-        add(headerButton, "cell 1 2")
-        add(regexButton, "cell 1 2")
-        add(typeDescription, "cell 1 3")
-        add(transformerLabel, "cell 0 4")
-        add(transformerComboBox, "cell 1 4")
-    }
 
     private val errorLabel = JLabel().apply {
         foreground = Color.RED
         text = " "
     }
 
-    private val okButton = JButton("OK").apply {
-        background = UIManager.getColor("Button.background")
-        font = font.deriveFont(font.style or Font.BOLD)
-        addActionListener { ok() }
-    }
-
     private val applyButton = JButton("Apply").apply {
         isEnabled = false
         addActionListener { apply() }
-    }
-
-    private val cancelButton = JButton("Cancel").apply {
-        addActionListener { cancel() }
-    }
-
-    private val buttonsPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
-        add(okButton, "west,gapx null 10")
-        add(applyButton, "west")
-        add(cancelButton, "EAST")
     }
 
     init {
@@ -589,9 +517,30 @@ class AddEditDialog(
 
         contentPane.apply {
             layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(optionsPanel, "cell 0 0")
+            add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
+                add(JLabel("Name"), "cell 0 0")
+                add(nameField, "cell 1 0,wmin 270,grow 0")
+                add(JLabel("Match"), "cell 0 1")
+                add(matchField, "cell 1 1,wmin 270,grow 0")
+                add(JLabel("Type"), "cell 0 2")
+                add(headerButton, "cell 1 2")
+                add(regexButton, "cell 1 2")
+                add(typeDescription, "cell 1 3")
+                add(JLabel("Transformer"), "cell 0 4")
+                add(transformerComboBox, "cell 1 4")
+            }, "cell 0 0")
             add(errorLabel, "cell 0 4")
-            add(buttonsPanel, "cell 0 5")
+            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+                add(JButton("OK").apply {
+                    background = UIManager.getColor("Button.background")
+                    font = font.deriveFont(font.style or Font.BOLD)
+                    addActionListener { ok() }
+                }, "west,gapx null 10")
+                add(applyButton, "west")
+                add(JButton("Cancel").apply {
+                    addActionListener { cancel() }
+                }, "EAST")
+            }, "cell 0 5")
         }
 
         setSize(250, 100)
@@ -721,7 +670,6 @@ class AddEditDialog(
 }
 
 class TransformerAddDialog(owner: Window?, private val transformerStore: TransformerStore) : JDialog(owner) {
-    private val nameLabel = JLabel("Name")
     private val nameField = JTextField().apply {
         addKeyListener(object : KeyAdapter() {
             override fun keyTyped(e: KeyEvent) {
@@ -730,36 +678,28 @@ class TransformerAddDialog(owner: Window?, private val transformerStore: Transfo
         })
     }
 
-    private val namePanel = JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
-        add(nameLabel, "cell 0 0")
-        add(nameField, "cell 1 0,wmin 270,grow 0")
-    }
-
     private val errorLabel = JLabel(" ").apply {
         foreground = Color.RED
-    }
-
-    private val okButton = JButton("OK").apply {
-        background = UIManager.getColor("Button.background")
-        font = font.deriveFont(font.style or Font.BOLD)
-        addActionListener { if (apply()) close() }
-    }
-
-    private val cancelButton = JButton("Cancel").apply {
-        addActionListener { close() }
-    }
-
-    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
-        add(okButton, "west,gapx null 10")
-        add(cancelButton, "EAST")
     }
 
     init {
         contentPane.apply {
             layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(namePanel, "cell 0 0")
+            add(JPanel(MigLayout("hidemode 3", "[fill][fill]", "[][][][]")).apply {
+                add(JLabel("Name"), "cell 0 0")
+                add(nameField, "cell 1 0,wmin 270,grow 0")
+            }, "cell 0 0")
             add(errorLabel, "cell 0 4")
-            add(buttonPanel, "cell 0 5")
+            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+                add(JButton("OK").apply {
+                    background = UIManager.getColor("Button.background")
+                    font = font.deriveFont(font.style or Font.BOLD)
+                    addActionListener { if (apply()) close() }
+                }, "west,gapx null 10")
+                add(JButton("Cancel").apply {
+                    addActionListener { close() }
+                }, "EAST")
+            }, "cell 0 5")
         }
 
         setSize(250, 100)
@@ -815,28 +755,24 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
         }
     }
 
-    private val okButton = JButton("OK").apply {
-        background = UIManager.getColor("Button.background")
-        font = font.deriveFont(font.style or Font.BOLD)
-        addActionListener {
-            this@TransformerTestDialog.dispatchEvent(
-                WindowEvent(
-                    this@TransformerTestDialog, WindowEvent.WINDOW_CLOSING
-                )
-            )
-        }
-    }
-
-    private val buttonPanel = JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
-        add(okButton, "west,gapx null 10")
-    }
-
     init {
         contentPane.apply {
             layout = MigLayout("hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
             add(nameLabel, "cell 0 0, wrap")
             add(JScrollPane(output), "grow, push, span")
-            add(buttonPanel, "cell 0 4")
+            add(JPanel(MigLayout("fillx,hidemode 3", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+                add(JButton("OK").apply {
+                    background = UIManager.getColor("Button.background")
+                    font = font.deriveFont(font.style or Font.BOLD)
+                    addActionListener {
+                        this@TransformerTestDialog.dispatchEvent(
+                            WindowEvent(
+                                this@TransformerTestDialog, WindowEvent.WINDOW_CLOSING
+                            )
+                        )
+                    }
+                }, "west,gapx null 10")
+            }, "cell 0 4")
         }
 
         pack()

@@ -1,22 +1,39 @@
 package burp
 
 import burp.api.montoya.MontoyaApi
-import burp.api.montoya.core.ByteArray
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants
+import org.fife.ui.rtextarea.RTextScrollPane
 import java.awt.Color
-import java.awt.Container
 import java.awt.Font
 import java.awt.Window
 import java.awt.event.*
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
+
+const val TRANSFORMER_EDITOR_HINT = """// Transformer function JavaScript code
+
+// value: string - the value to transform
+// Lib: object - the library object (contains lodash, etc.)
+// returns: string - the transformed value (last line is returned implicitly)
+
+// Example 1:
+// value.toUpperCase()
+
+// Example 2:
+// Lib._.camelCase(value)
+
+"""
 
 val VALUES_TABLE = JTable().apply {
     setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
@@ -172,22 +189,50 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
         isEnabled = false
     }
 
-    private val transformerEditor = api.userInterface().createRawEditor().apply {
-        (uiComponent() as Container).components.filterNotNull().firstOrNull { it.name == "messageEditor" }
-            ?.let { it as JScrollPane }?.components?.filterIsInstance<JViewport>()?.flatMap { it.components.asList() }
-            ?.firstOrNull { it.name == "syntaxTextArea" }?.let { it as JTextArea }
-            ?.addKeyListener(object : KeyAdapter() {
-                override fun keyTyped(e: KeyEvent) {
-                    this@UI.editorTyped()
-                }
-            })
+    private val transformerEditor = RSyntaxTextArea().apply {
+        syntaxEditingStyle = SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT
+        isCodeFoldingEnabled = true
+        tabSize = 4
+        isBracketMatchingEnabled = true
+        currentLineHighlightColor = Color.LIGHT_GRAY
+        caretColor = Color.BLACK
+        isAutoIndentEnabled = true
+        isEditable = true
+        isEnabled = true
+
+        document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent) {
+                editorTyped()
+            }
+
+            override fun removeUpdate(e: DocumentEvent) {
+                editorTyped()
+            }
+
+            override fun changedUpdate(e: DocumentEvent) {
+                editorTyped()
+            }
+        })
+
+        val saveAction = object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                transformerSave()
+            }
+        }
+
+        val keyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
+        inputMap.put(keyStroke, "Save")
+        actionMap.put("Save", saveAction)
     }
 
     private val transformerEditorPanel = JPanel(MigLayout("", "[]", "[][]")).apply {
         isVisible = false
         add(transformerEditorSave)
         add(transformerEditorTest, "wrap")
-        add(transformerEditor.uiComponent(), "span, grow, push")
+        add(RTextScrollPane(transformerEditor).apply {
+            lineNumbersEnabled = true
+            isEnabled = true
+        }, "span, grow, push")
     }
 
     init {
@@ -235,7 +280,8 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
             }
         ).apply {
             resizeWeight = 0.5
-        }, "grow, push, span")
+        }, "grow, push, span"
+        )
 
         (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
         VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
@@ -322,13 +368,13 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
 
         transformerStore.transformers.remove(rowToTName(selectedRows[0]))
         transformerStore.save()
-        transformerEditor.contents = ByteArray.byteArray("")
+        transformerEditor.text = ""
 
         reloadTransformersTable(transformerStore.transformers)
     }
 
     private fun transformerSave() {
-        transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)] = transformerEditor.contents.toString()
+        transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)] = transformerEditor.text
         transformerStore.save()
 
         transformerEditorSave.isEnabled = false
@@ -337,7 +383,7 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
     private fun transformerTest() {
         val window = TransformerTestDialog(
             getWindowAncestor(this),
-            transformerEditor.contents.toString(),
+            transformerEditor.text,
             itemStore.items[rowToName(VALUES_TABLE.selectedRow)]?.lastMatch!!
         )
         window.title = "Transformer output"
@@ -399,10 +445,11 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
 
             else -> {
                 transformerRemove.isEnabled = true
-                transformerEditor.contents =
-                    ByteArray.byteArray(transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]!!)
+                transformerEditor.text =
+                    transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]
                 if (VALUES_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
                 transformerEditorPanel.isVisible = true
+                transformerEditor.requestFocusInWindow()
             }
         }
     }
@@ -668,7 +715,7 @@ class TransformerAddDialog(owner: Window?, private val transformerStore: Transfo
             showError("Transformer named \"$name\" already exists!")
             return false
         }
-        transformerStore.transformers[name] = ""
+        transformerStore.transformers[name] = TRANSFORMER_EDITOR_HINT
 
         transformerStore.save()
         reloadTransformersTable(transformerStore.transformers)

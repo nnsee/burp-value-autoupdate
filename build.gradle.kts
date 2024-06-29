@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ee.nns.updater"
-version = "0.3.1"
+version = "0.4.0"
 
 repositories {
     mavenCentral()
@@ -24,6 +24,7 @@ dependencies {
     implementation("org.graalvm.sdk:graal-sdk:24.0.1")
     implementation("org.graalvm.truffle:truffle-api:24.0.1")
     implementation("org.graalvm.js:js:23.0.4")
+    implementation("com.fifesoft:rsyntaxtextarea:3.4.1")
     api("net.portswigger.burp.extensions:montoya-api:2023.12.1")
 }
 
@@ -57,6 +58,7 @@ tasks.withType<ShadowJar> {
     minimize {
         exclude(dependency("org.graalvm.truffle:.*"))
         exclude(dependency("org.graalvm.js:.*"))
+        exclude(dependency("com.fifesoft:.*"))
     }
 
     mergeServiceFiles()

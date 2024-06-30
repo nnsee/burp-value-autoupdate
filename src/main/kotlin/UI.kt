@@ -14,12 +14,14 @@ import java.awt.Window
 import java.awt.event.*
 import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
+import javax.swing.KeyStroke.getKeyStroke
 import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.table.TableModel
+import kotlin.math.max
 
 const val TRANSFORMER_EDITOR_HINT = """// Transformer function JavaScript code
 
@@ -214,15 +216,51 @@ class UI(api: MontoyaApi, private val itemStore: ItemStore, private val transfor
             }
         })
 
-        val saveAction = object : AbstractAction() {
-            override fun actionPerformed(e: ActionEvent) {
-                transformerSave()
-            }
+        inputMap.apply {
+            put(getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), "Save")
+            put(getKeyStroke(KeyEvent.VK_PLUS, InputEvent.CTRL_DOWN_MASK), "IncreaseFontSize")
+            put(getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), "IncreaseFontSize")
+            put(getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_DOWN_MASK), "IncreaseFontSize")
+            put(getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), "DecreaseFontSize")
+            put(
+                getKeyStroke(
+                    KeyEvent.VK_MINUS,
+                    InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK
+                ), "DecreaseFontSize"
+            )
+            put(getKeyStroke(KeyEvent.VK_SUBTRACT, InputEvent.CTRL_DOWN_MASK), "DecreaseFontSize")
+            put(getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), "ResetFontSize")
+            put(getKeyStroke(KeyEvent.VK_NUMPAD0, InputEvent.CTRL_DOWN_MASK), "ResetFontSize")
         }
 
-        val keyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)
-        inputMap.put(keyStroke, "Save")
-        actionMap.put("Save", saveAction)
+        actionMap.apply {
+            put("Save", object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    transformerSave()
+                }
+            })
+            put("IncreaseFontSize", object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    font = Font(font.name, font.style, font.size + 1)
+                }
+            })
+            put("DecreaseFontSize", object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    font = Font(font.name, font.style, max(1, font.size - 1))
+                }
+            })
+            put("ResetFontSize", object : AbstractAction() {
+                override fun actionPerformed(e: ActionEvent) {
+                    font = Font(font.name, font.style, 12)
+                }
+            })
+        }
+
+        addMouseWheelListener { e ->
+            if (e.isControlDown) {
+                font = Font(font.name, font.style, max(1, font.size - e.wheelRotation))
+            }
+        }
     }
 
     private val transformerEditorPanel = JPanel(MigLayout("", "[]", "[][]")).apply {

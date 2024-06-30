@@ -1,5 +1,6 @@
 package burp
 
+import burp.ui.MainActivity
 import burp.api.montoya.BurpExtension
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.handler.*
@@ -10,7 +11,7 @@ const val EXTENSION_NAME = "Value Autoupdater"
 
 @Suppress("unused")
 class BurpExtender : BurpExtension {
-    private lateinit var ui: UI
+    private lateinit var mainActivity: MainActivity
     private lateinit var items: ItemStore
     private lateinit var transformers: TransformerStore
     private lateinit var replacer: Replacer
@@ -31,7 +32,7 @@ class BurpExtender : BurpExtension {
         api.extension().setName(EXTENSION_NAME)
         items = ItemStore(api.persistence().preferences())
         transformers = TransformerStore(api.persistence().preferences())
-        ui = UI(api, items, transformers)
+        mainActivity = MainActivity(api, items, transformers)
         replacer = Replacer(items, transformers)
 
         api.http().registerHttpHandler(ExtHttpHandler())
@@ -41,14 +42,14 @@ class BurpExtender : BurpExtension {
 
     inner class ExtHttpHandler : HttpHandler {
         override fun handleHttpRequestToBeSent(request: HttpRequestToBeSent): RequestToBeSentAction {
-            if (!ui.isEnabled(request.toolSource().toolType()))
+            if (!mainActivity.isEnabled(request.toolSource().toolType()))
                 return RequestToBeSentAction.continueWith(request)
             val result = replacer.handleRequest(request.toString())
             return RequestToBeSentAction.continueWith(HttpRequest.httpRequest(request.httpService(), result.contents))
         }
 
         override fun handleHttpResponseReceived(response: HttpResponseReceived): ResponseReceivedAction {
-            if (ui.isEnabled(response.toolSource().toolType()))
+            if (mainActivity.isEnabled(response.toolSource().toolType()))
                 replacer.handleResponse(response.toString())
             return ResponseReceivedAction.continueWith(response)
         }

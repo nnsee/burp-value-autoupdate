@@ -1,5 +1,7 @@
 package burp
 
+import burp.ui.replaced
+import burp.ui.updated
 import com.google.re2j.Pattern
 import com.google.re2j.PatternSyntaxException
 

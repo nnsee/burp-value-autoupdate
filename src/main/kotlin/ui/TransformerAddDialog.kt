@@ -12,7 +12,7 @@ import java.awt.event.WindowEvent
 import javax.swing.*
 
 class TransformerAddDialog(
-    owner: Window?,
+    owner: Window,
     private val transformerStore: TransformerStore,
     private val reloadTransformersTable: (Transformers) -> Unit
 ) : JDialog(owner) {
@@ -30,26 +30,24 @@ class TransformerAddDialog(
 
     init {
         contentPane.apply {
-            layout = MigLayout("", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(JPanel(MigLayout("", "[fill][fill]", "[][][][]")).apply {
-                add(JLabel("Name"), "cell 0 0")
-                add(nameField, "cell 1 0,wmin 270,grow 0")
-            }, "cell 0 0")
-            add(errorLabel, "cell 0 4")
-            add(JPanel(MigLayout("fillx", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+            layout = MigLayout("wrap, ins 20 20 20 20", "[][grow]", "[]")
+            add(JLabel("Name"))
+            add(nameField, "growx")
+            add(JLabel("Language"))
+            add(JComboBox<String>().apply { addItem("JavaScript") }, "growx")
+            add(errorLabel, "push, span, aligny bottom")
+            add(JPanel(MigLayout("wrap, ins 0", "[][]", "[]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)
                     addActionListener { if (apply()) close() }
-                }, "west,gapx null 10")
+                }, "pushx")
                 add(JButton("Cancel").apply {
                     addActionListener { close() }
-                }, "EAST")
-            }, "cell 0 5")
+                }, "alignx right, growx")
+            }, "span, growx")
         }
 
-        setSize(250, 100)
-        isResizable = false
         pack()
         setLocationRelativeTo(owner)
         defaultCloseOperation = DISPOSE_ON_CLOSE

@@ -12,7 +12,7 @@ import java.awt.event.WindowEvent
 import javax.swing.*
 
 class AddEditDialog(
-    owner: Window?,
+    owner: Window,
     private var index: Int,
     private val itemStore: ItemStore,
     private val transformerStore: TransformerStore,
@@ -80,33 +80,31 @@ class AddEditDialog(
         }
 
         contentPane.apply {
-            layout = MigLayout("fillx, hidemode 3", "[fill][fill][fill][fill][fill]", "[][][][][]")
-            add(JLabel("Name"), "cell 0 0")
-            add(nameField, "cell 1 0, span 4, growx, wmin 270, wrap")
-            add(JLabel("Match"), "cell 0 1")
-            add(matchField, "cell 1 1, span 4, growx, wmin 270, wrap")
-            add(JLabel("Type"), "cell 0 2")
-            add(headerButton, "cell 1 2, split 2")
-            add(regexButton, "wrap")
-            add(typeDescription, "cell 1 3, span 4, wrap")
-            add(JLabel("Transformer"), "cell 0 4")
-            add(transformerComboBox, "cell 1 4, span 4, growx, wrap")
-            add(errorLabel, "cell 0 5, span 5, wrap")
-            add(JPanel(MigLayout("fillx, insets 0", "[fill][fill][fill][fill][fill]")).apply {
+            layout = MigLayout("wrap, ins 20 20 20 20", "[][grow]", "[]")
+            add(JLabel("Name"))
+            add(nameField, "growx")
+            add(JLabel("Match"))
+            add(matchField, "growx")
+            add(JLabel("Type"))
+            add(headerButton, "split 2")
+            add(regexButton)
+            add(typeDescription, "skip 1, growx")
+            add(JLabel("Transformer"))
+            add(transformerComboBox, "growx")
+            add(errorLabel, "push, span, aligny bottom")
+            add(JPanel(MigLayout("wrap, ins 0", "[][][]", "[]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)
                     addActionListener { ok() }
-                }, "split 3")
-                add(applyButton)
+                })
+                add(applyButton, "pushx")
                 add(JButton("Cancel").apply {
                     addActionListener { cancel() }
-                })
-            }, "cell 0 6, span 5, align right, wrap")
+                }, "alignx right, growx")
+            }, "span, growx")
         }
 
-        setSize(400, 300)
-        isResizable = false
         pack()
         setLocationRelativeTo(owner)
         loadTransformers()

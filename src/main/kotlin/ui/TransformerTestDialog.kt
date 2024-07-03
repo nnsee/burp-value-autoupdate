@@ -8,10 +8,10 @@ import java.awt.Window
 import java.awt.event.WindowEvent
 import javax.swing.*
 
-class TransformerTestDialog(owner: Window?, transformer: String, value: String) : JDialog(owner) {
+class TransformerTestDialog(owner: Window, transformer: String, value: String) : JDialog(owner) {
     private val nameLabel = JLabel("Output")
     private val output = JTextArea(10, 80).apply {
-        font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+        font = Font(Font.MONOSPACED, Font.PLAIN, font.size)
         isEditable = false
         lineWrap = true
 
@@ -27,10 +27,10 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
 
     init {
         contentPane.apply {
-            layout = MigLayout("", "[fill][fill][fill][fill][fill]", "[][][][][][][]")
-            add(nameLabel, "cell 0 0, wrap")
-            add(JScrollPane(output), "grow, push, span")
-            add(JPanel(MigLayout("fillx", "[fill][fill][fill][fill][fill]", "[fill]")).apply {
+            layout = MigLayout("wrap, ins 20 20 20 20", "[grow]", "[]")
+            add(nameLabel)
+            add(JScrollPane(output), "grow, push")
+            add(JPanel(MigLayout("wrap, ins 0", "[]", "[]")).apply {
                 add(JButton("OK").apply {
                     background = UIManager.getColor("Button.background")
                     font = font.deriveFont(font.style or Font.BOLD)
@@ -41,8 +41,8 @@ class TransformerTestDialog(owner: Window?, transformer: String, value: String) 
                             )
                         )
                     }
-                }, "west,gapx null 10")
-            }, "cell 0 4")
+                })
+            }, "span, growx")
         }
 
         pack()

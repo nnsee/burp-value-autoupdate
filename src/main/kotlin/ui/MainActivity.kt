@@ -9,6 +9,7 @@ import burp.api.montoya.core.ToolType
 import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
 import org.fife.ui.rtextarea.RTextScrollPane
+import java.awt.Component
 import java.awt.Font
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -17,6 +18,7 @@ import javax.swing.*
 import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.TableModelEvent
+import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.DefaultTableModel
 
 class MainActivity(
@@ -154,6 +156,23 @@ class MainActivity(
         isEnabled = false
     }
 
+    private fun createTooltipCellRenderer() = object : DefaultTableCellRenderer() {
+        override fun getTableCellRendererComponent(
+            table: JTable,
+            value: Any,
+            isSelected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
+        ): Component {
+            val component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+            if (component is JComponent) {
+                component.toolTipText = value.toString()
+            }
+            return component
+        }
+    }
+
     private fun createValuesTable() = JTable().apply {
         setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
         model = object : DefaultTableModel(
@@ -171,6 +190,10 @@ class MainActivity(
         }
 
         columnModel.getColumn(0).preferredWidth = 25
+
+        for (i in 1 until columnCount) {
+            columnModel.getColumn(i).cellRenderer = createTooltipCellRenderer()
+        }
     }
 
     private fun createTransformersTable() = JTable().apply {
@@ -182,6 +205,8 @@ class MainActivity(
                 return false
             }
         }
+
+        columnModel.getColumn(0).cellRenderer = createTooltipCellRenderer()
     }
 
     private fun reloadValuesTable(items: Items) {

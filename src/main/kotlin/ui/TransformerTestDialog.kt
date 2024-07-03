@@ -8,14 +8,14 @@ import java.awt.Window
 import java.awt.event.WindowEvent
 import javax.swing.*
 
-class TransformerTestDialog(owner: Window, transformer: String, value: String) : JDialog(owner) {
+class TransformerTestDialog(owner: Window, transformer: String, value: String, values: Map<String, String>) : JDialog(owner) {
     private val nameLabel = JLabel("Output")
     private val output = JTextArea(10, 80).apply {
         font = Font(Font.MONOSPACED, Font.PLAIN, font.size)
         isEditable = false
         lineWrap = true
 
-        val transformed = evalTransformer(value, transformer)
+        val transformed = evalTransformer(value, values, transformer)
         if (transformed.err == "") {
             text = transformed.out
         } else {

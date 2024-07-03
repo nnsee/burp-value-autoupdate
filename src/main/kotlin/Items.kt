@@ -43,6 +43,10 @@ class ItemStore(private val ctx: Preferences) {
         ctx.setString(ITEM_STORE, Json.encodeToString(items))
     }
 
+    fun getAll(): Map<String, String> {
+        return items.mapValues { it.value.match }
+    }
+
     @Suppress("unused")
     fun nuke() {
         ctx.deleteString(ITEM_STORE)

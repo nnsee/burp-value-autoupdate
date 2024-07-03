@@ -17,7 +17,7 @@ val regexCache = mutableMapOf<String, Pattern>()
 
 interface ReplaceStrategy {
     fun updateValue(request: String, match: String): Response
-    fun matchAndReplace(request: String, key: String, item: Item, transformerStore: TransformerStore): Response {
+    fun matchAndReplace(request: String, key: String, item: Item, transformerStore: TransformerStore, itemStore: ItemStore): Response {
         val res = Response(false, "")
 
         if (request.contains("\$$key\$")) {
@@ -25,7 +25,7 @@ interface ReplaceStrategy {
             var value = item.lastMatch
             if (item.transformer != "") {
                 transformerStore.transformers[item.transformer]?.let {
-                    val transformed = evalTransformer(value, it)
+                    val transformed = evalTransformer(value, itemStore.getAll(), it)
                     if (transformed.err == "")
                         value = transformed.out
                 }
@@ -84,7 +84,7 @@ class Replacer(private val itemStore: ItemStore, private val transformerStore: T
 
         itemStore.items.forEach {
             if (!it.value.enabled) return@forEach
-            val resp = strategies[it.value.type]?.matchAndReplace(result.contents, it.key, it.value, transformerStore)!!
+            val resp = strategies[it.value.type]?.matchAndReplace(result.contents, it.key, it.value, transformerStore, itemStore)!!
 
             if (resp.matched) {
                 it.value.replaceCount += 1

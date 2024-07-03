@@ -341,7 +341,9 @@ class MainActivity(
         val window = TransformerTestDialog(
             getWindowAncestor(this),
             transformerEditor.text,
-            itemStore.items[getRowName(valuesTable.selectedRow)]?.lastMatch ?: ""
+            itemStore.items[getRowName(valuesTable.selectedRow)]?.lastMatch ?: "",
+            // all values
+            itemStore.items.mapValues { it.value.lastMatch },
         )
         window.title = "Transformer output"
         window.isVisible = true

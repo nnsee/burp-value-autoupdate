@@ -31,21 +31,30 @@ fun initTransformerBundle(): Value? {
     return context.eval(source)
 }
 
-fun evalTransformer(value: String, transformer: String): TransformerResult {
+fun evalTransformer(value: String, values: Map<String, String>, transformer: String): TransformerResult {
     val res = TransformerResult("", "")
 
     if (!DONE_LIB_INIT) {
         LIB = initTransformerBundle()
     }
+
     val context = Context.create()
     val bindings = context.getBindings("js")
     bindings.putMember("value", value)
+
+    // convert the HashMap to a JavaScript object
+    val jsValues = context.eval("js", "({})")
+    values.forEach { (k, v) -> jsValues.putMember(k, v) }
+    bindings.putMember("values", jsValues)
     bindings.putMember("Lib", LIB)
+
     try {
         res.out = context.eval("js", transformer).asString()
     } catch (e: Exception) {
         Log.error("Transformer exception!", e)
+        res.err = e.message ?: "Unknown error"
     }
+
     context.close()
 
     return res

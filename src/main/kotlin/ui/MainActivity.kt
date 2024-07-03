@@ -121,7 +121,7 @@ class MainActivity(
     }
 
     private fun createValuesPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
-        add(JPanel(MigLayout("", "[fill]")).apply {
+        add(JPanel(MigLayout("ins 0", "[fill]")).apply {
             add(createButton("Add", ::addValue).apply { isEnabled = true }, "wrap")
             add(valueEdit, "wrap")
             add(valueRemove, "wrap")
@@ -142,7 +142,7 @@ class MainActivity(
     }
 
     private fun createTransformersPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
-        add(JPanel(MigLayout("", "[fill]")).apply {
+        add(JPanel(MigLayout("ins 0", "[fill]")).apply {
             add(createButton("Add", ::addTransformer).apply { isEnabled = true }, "wrap")
             add(transformerRemove, "wrap")
         }, "aligny top, growy")

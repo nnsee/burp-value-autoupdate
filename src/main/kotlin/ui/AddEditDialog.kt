@@ -18,6 +18,7 @@ class AddEditDialog(
     private val transformerStore: TransformerStore,
     private val reloadValuesTable: (Items) -> Unit,
     private val rowToName: (Int) -> String,
+    private val tableLen: () -> Int,
 ) : JDialog(owner) {
 
     private val headerTypeHint = "Matches header names and replaces values "
@@ -184,7 +185,7 @@ class AddEditDialog(
                 return false
             }
             itemStore.items[name] = item
-            index = VALUES_TABLE.rowCount
+            index = tableLen()
             Log.debug("New item at index $index: $item")
         } else {
             val item = itemStore.items[rowToName(index)]

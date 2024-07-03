@@ -6,7 +6,6 @@ import burp.TransformerStore
 import burp.Transformers
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.core.ToolType
-import burp.api.montoya.core.ToolType.*
 import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
 import org.fife.ui.rtextarea.RTextScrollPane
@@ -19,178 +18,43 @@ import javax.swing.JOptionPane.showMessageDialog
 import javax.swing.SwingUtilities.getWindowAncestor
 import javax.swing.event.TableModelEvent
 import javax.swing.table.DefaultTableModel
-import javax.swing.table.TableModel
 
-const val TRANSFORMER_EDITOR_HINT = """// Transformer function JavaScript code
+class MainActivity(
+    api: MontoyaApi,
+    private val itemStore: ItemStore,
+    private val transformerStore: TransformerStore
+) : JPanel() {
 
-// value: string - the value to transform
-// Lib: object - the library object (contains lodash, etc.)
-// returns: string - the transformed value (last line is returned implicitly)
-
-// Example 1:
-// value.toUpperCase()
-
-// Example 2:
-// Lib._.camelCase(value)
-
-"""
-
-val VALUES_TABLE = JTable().apply {
-    setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-    model = object : DefaultTableModel(
-        arrayOf(), arrayOf(
-            "", "Name", "Match", "Last value", "Times updated", "Times replaced", "Transformer"
-        )
-    ) {
-        override fun getColumnClass(columnIndex: Int): Class<*> {
-            if (columnIndex == 0) return Boolean::class.javaObjectType
-            return String::class.javaObjectType
-        }
-
-        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
-            return columnIndex == 0  // enabled button
-        }
-    }
-
-    columnModel.getColumn(0).preferredWidth = 25
-}
-
-val TRANSFORMER_TABLE = JTable().apply {
-    setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-    model = object : DefaultTableModel(
-        arrayOf(), arrayOf(
-            "Name"
-        )
-    ) {
-        override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
-            return false
-        }
-    }
-}
-
-const val TAB_NAME = "Value Tracker"
-var TAB_VISIBLE = false
-var namedRows = mapOf<String, Int>()
-var namedTRows = mapOf<String, Int>()
-
-fun updated(name: String, value: String, count: Int) {
-    if (!TAB_VISIBLE) return
-    val dtm = VALUES_TABLE.model as DefaultTableModel
-    namedRows[name]?.let {
-        dtm.setValueAt(value, it, 3)
-        dtm.setValueAt(count, it, 4)
-    }
-}
-
-fun replaced(name: String, count: Int) {
-    if (!TAB_VISIBLE) return
-    val dtm = VALUES_TABLE.model as DefaultTableModel
-    namedRows[name]?.let { dtm.setValueAt(count, it, 5) }
-}
-
-private fun reloadValuesTable(items: Items) {
-    val dtm = VALUES_TABLE.model as DefaultTableModel
-    val tmpMap = mutableMapOf<String, Int>()
-
-    VALUES_TABLE.clearSelection()
-    dtm.dataVector.removeAllElements()
-
-    items.forEach {
-        dtm.addRow(
-            arrayOf(
-                it.value.enabled,
-                it.key,
-                it.value.match,
-                it.value.lastMatch,
-                it.value.matchCount,
-                it.value.replaceCount,
-                it.value.transformer
-            )
-        )
-        tmpMap[it.key] = dtm.rowCount - 1
-    }
-
-    dtm.fireTableDataChanged()
-    namedRows = tmpMap
-}
-
-private fun reloadTransformersTable(transformers: Transformers) {
-    val dtm = TRANSFORMER_TABLE.model as DefaultTableModel
-    val tmpMap = mutableMapOf<String, Int>()
-
-    TRANSFORMER_TABLE.clearSelection()
-    dtm.dataVector.removeAllElements()
-
-    transformers.forEach {
-        dtm.addRow(
-            arrayOf(
-                it.key
-            )
-        )
-        tmpMap[it.key] = dtm.rowCount - 1
-    }
-
-    dtm.fireTableDataChanged()
-    namedTRows = tmpMap
-}
-
-private fun rowToName(row: Int): String {
-    val dtm = VALUES_TABLE.model
-
-    return dtm.getValueAt(row, 1).toString()
-}
-
-private fun rowToTName(row: Int): String {
-    val dtm = TRANSFORMER_TABLE.model
-
-    return dtm.getValueAt(row, 0).toString()
-}
-
-class MainActivity(api: MontoyaApi, private val itemStore: ItemStore, private val transformerStore: TransformerStore) :
-    JPanel() {
     private val ctx: Preferences = api.persistence().preferences()
     private var extEnabled = true
     private var enabledTools = mutableMapOf(
-        PROXY to true,
-        REPEATER to true,
-        SCANNER to false,
-        SEQUENCER to true,
-        INTRUDER to true,
-        EXTENSIONS to false,
+        ToolType.PROXY to true,
+        ToolType.REPEATER to true,
+        ToolType.SCANNER to false,
+        ToolType.SEQUENCER to true,
+        ToolType.INTRUDER to true,
+        ToolType.EXTENSIONS to false,
     )
-
     private val toolSelectionMap = mutableMapOf<ToolType, JCheckBox>()
 
+    private var namedRows = mapOf<String, Int>()
+    private var namedTRows = mapOf<String, Int>()
+    private var tabVisible = false
+
+    private val valuesTable = createValuesTable()
+    private val transformerTable = createTransformersTable()
+
     private val enabledToggle = JCheckBox("Extension enabled").apply {
-        addItemListener { e: ItemEvent -> enabledToggle(e) }
+        addItemListener { e: ItemEvent -> toggleExtensionEnabled(e) }
     }
 
-    private val valueEdit = JButton("Edit").apply {
-        addActionListener { valueEdit() }
-        isEnabled = false
-    }
+    private val valueEdit = createButton("Edit", ::editValue)
+    private val valueRemove = createButton("Remove", ::removeValue)
+    private val transformerRemove = createButton("Remove", ::removeTransformer)
+    private val transformerEditorSave = createButton("Save", ::saveTransformer)
+    private val transformerEditorTest = createButton("Test", ::testTransformer)
 
-    private val valueRemove = JButton("Remove").apply {
-        addActionListener { valueRemove() }
-        isEnabled = false
-    }
-
-    private val transformerRemove = JButton("Remove").apply {
-        addActionListener { transformerRemove() }
-        isEnabled = false
-    }
-
-    private val transformerEditorSave = JButton("Save").apply {
-        addActionListener { transformerSave() }
-        isEnabled = false
-    }
-
-    private val transformerEditorTest = JButton("Test").apply {
-        addActionListener { transformerTest() }
-        isEnabled = false
-    }
-
-    private val transformerEditor = Editor({ editorTyped() }, { transformerSave() }).textArea
+    private val transformerEditor = Editor(::onEditorTyped, ::saveTransformer).textArea
 
     private val transformerEditorPanel = JPanel(MigLayout("", "[]", "[][]")).apply {
         isVisible = false
@@ -203,69 +67,163 @@ class MainActivity(api: MontoyaApi, private val itemStore: ItemStore, private va
     }
 
     init {
-        entries.filter { it in enabledTools }.forEach { tool ->
+        setupUI()
+        loadValuesFromStore()
+        api.userInterface().registerSuiteTab("Value tracker", this)
+    }
+
+    private fun setupUI() {
+        layout = MigLayout("fill, align center top", "[fill]")
+
+        enabledTools.keys.forEach { tool ->
             toolSelectionMap[tool] = JCheckBox(tool.toolName()).apply {
                 isSelected = enabledTools[tool] ?: false
-                addItemListener { e: ItemEvent -> toolSelected(tool, e) }
+                addItemListener { e: ItemEvent -> toggleToolSelected(tool, e) }
             }
         }
 
-        layout = MigLayout("fill, align center top", "[fill]")
-
-        add(JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-            JPanel(MigLayout("fillx, align left top", "[fill]")).apply {
-                add(JLabel("Values to Track").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-                add(JPanel(MigLayout("", "[fill][fill]")).apply {
-                    add(JPanel(MigLayout("", "[fill]")).apply {
-                        add(JButton("Add").apply { addActionListener { valueAdd() } }, "wrap")
-                        add(valueEdit, "wrap")
-                        add(valueRemove, "wrap")
-                    }, "aligny top, growy 0")
-                    add(JScrollPane(VALUES_TABLE), "grow, push")
-                }, "wrap")
-                add(JSeparator(), "growx, wrap")
-                add(JLabel("Enabled tools").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-                add(JPanel(MigLayout("", "[fill][fill][fill]")).apply {
-                    toolSelectionMap.values.forEachIndexed { index, checkBox ->
-                        add(checkBox, "cell ${index % 3} ${index / 3}")
-                    }
-                }, "wrap")
-                add(JSeparator(), "growx, wrap")
-                add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-                add(JPanel(MigLayout()).apply { add(enabledToggle) }, "wrap")
+        add(
+            JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                createLeftPanel(),
+                createRightPanel()
+            ).apply {
+                resizeWeight = 0.5
             },
-            JPanel(MigLayout("fill, align left top", "[fill]")).apply {
-                add(JLabel("Value Transformers").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-                add(JPanel(MigLayout("", "[fill][fill]")).apply {
-                    add(JPanel(MigLayout("", "[fill]")).apply {
-                        add(JButton("Add").apply { addActionListener { transformerAdd() } }, "wrap")
-                        add(transformerRemove, "wrap")
-                    }, "aligny top, growy")
-                    add(JScrollPane(TRANSFORMER_TABLE), "grow, push")
-                }, "wrap")
-                add(transformerEditorPanel, "grow, push")
-            }
-        ).apply {
-            resizeWeight = 0.5
-        }, "grow, push, span"
+            "grow, push, span"
         )
 
-        (VALUES_TABLE.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> tableEdit(e) }
-        VALUES_TABLE.selectionModel.addListSelectionListener { tableSelected() }
-        TRANSFORMER_TABLE.selectionModel.addListSelectionListener { transformerSelected() }
+        (valuesTable.model as DefaultTableModel).addTableModelListener { e: TableModelEvent -> onTableEdit(e) }
+        valuesTable.selectionModel.addListSelectionListener { onTableSelected() }
+        transformerTable.selectionModel.addListSelectionListener { onTransformerSelected() }
+
         addComponentListener(object : ComponentAdapter() {
             override fun componentShown(e: ComponentEvent?) {
-                TAB_VISIBLE = true
+                tabVisible = true
                 reloadValuesTable(itemStore.items)
             }
 
             override fun componentHidden(e: ComponentEvent?) {
-                TAB_VISIBLE = false
+                tabVisible = false
             }
         })
+    }
 
-        loadValuesFromStore()
-        api.userInterface().registerSuiteTab(TAB_NAME, this)
+    private fun createLeftPanel() = JPanel(MigLayout("fillx, align left top", "[fill]")).apply {
+        add(JLabel("Values to Track").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+        add(createValuesPanel(), "wrap")
+        add(JSeparator(), "growx, wrap")
+        add(JLabel("Enabled tools").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+        add(createToolsPanel(), "wrap")
+        add(JSeparator(), "growx, wrap")
+        add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+        add(JPanel(MigLayout()).apply { add(enabledToggle) }, "wrap")
+    }
+
+    private fun createValuesPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
+        add(JPanel(MigLayout("", "[fill]")).apply {
+            add(createButton("Add", ::addValue).apply { isEnabled = true }, "wrap")
+            add(valueEdit, "wrap")
+            add(valueRemove, "wrap")
+        }, "aligny top, growy 0")
+        add(JScrollPane(valuesTable), "grow, push")
+    }
+
+    private fun createToolsPanel() = JPanel(MigLayout("", "[fill][fill][fill]")).apply {
+        toolSelectionMap.values.forEachIndexed { index, checkBox ->
+            add(checkBox, "cell ${index % 3} ${index / 3}")
+        }
+    }
+
+    private fun createRightPanel() = JPanel(MigLayout("fill, align left top", "[fill]")).apply {
+        add(JLabel("Value Transformers").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
+        add(createTransformersPanel(), "wrap")
+        add(transformerEditorPanel, "grow, push")
+    }
+
+    private fun createTransformersPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
+        add(JPanel(MigLayout("", "[fill]")).apply {
+            add(createButton("Add", ::addTransformer).apply { isEnabled = true }, "wrap")
+            add(transformerRemove, "wrap")
+        }, "aligny top, growy")
+        add(JScrollPane(transformerTable), "grow, push")
+    }
+
+    private fun createButton(text: String, action: () -> Unit) = JButton(text).apply {
+        addActionListener { action() }
+        isEnabled = false
+    }
+
+    private fun createValuesTable() = JTable().apply {
+        setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+        model = object : DefaultTableModel(
+            arrayOf(), arrayOf(
+                "", "Name", "Match", "Last value", "Times updated", "Times replaced", "Transformer"
+            )
+        ) {
+            override fun getColumnClass(columnIndex: Int): Class<*> {
+                return if (columnIndex == 0) Boolean::class.javaObjectType else String::class.javaObjectType
+            }
+
+            override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+                return columnIndex == 0  // enabled button
+            }
+        }
+
+        columnModel.getColumn(0).preferredWidth = 25
+    }
+
+    private fun createTransformersTable() = JTable().apply {
+        setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+        model = object : DefaultTableModel(
+            arrayOf(), arrayOf("Name")
+        ) {
+            override fun isCellEditable(rowIndex: Int, columnIndex: Int): Boolean {
+                return false
+            }
+        }
+    }
+
+    private fun reloadValuesTable(items: Items) {
+        val dtm = valuesTable.model as DefaultTableModel
+        val tmpMap = mutableMapOf<String, Int>()
+
+        valuesTable.clearSelection()
+        dtm.dataVector.removeAllElements()
+
+        items.forEach {
+            dtm.addRow(
+                arrayOf(
+                    it.value.enabled,
+                    it.key,
+                    it.value.match,
+                    it.value.lastMatch,
+                    it.value.matchCount,
+                    it.value.replaceCount,
+                    it.value.transformer
+                )
+            )
+            tmpMap[it.key] = dtm.rowCount - 1
+        }
+
+        dtm.fireTableDataChanged()
+        namedRows = tmpMap
+    }
+
+    private fun reloadTransformersTable(transformers: Transformers) {
+        val dtm = transformerTable.model as DefaultTableModel
+        val tmpMap = mutableMapOf<String, Int>()
+
+        transformerTable.clearSelection()
+        dtm.dataVector.removeAllElements()
+
+        transformers.forEach {
+            dtm.addRow(arrayOf(it.key))
+            tmpMap[it.key] = dtm.rowCount - 1
+        }
+
+        dtm.fireTableDataChanged()
+        namedTRows = tmpMap
     }
 
     private fun loadValuesFromStore() {
@@ -273,6 +231,8 @@ class MainActivity(api: MontoyaApi, private val itemStore: ItemStore, private va
         enabledToggle.isSelected = extEnabled
 
         toolSelectionMap.forEach {
+            if (!enabledTools.containsKey(it.key))
+                return@forEach
             enabledTools[it.key] = ctx.getBoolean("${it.key.name}-enabled") ?: enabledTools[it.key]!!
             it.value.isSelected = enabledTools[it.key]!!
         }
@@ -281,165 +241,164 @@ class MainActivity(api: MontoyaApi, private val itemStore: ItemStore, private va
         reloadTransformersTable(transformerStore.transformers)
     }
 
-    fun isEnabled(tool: ToolType): Boolean {
-        return extEnabled and enabledTools[tool]!!
-    }
-
-    private fun valueAdd() {
+    private fun addValue() {
         val window = AddEditDialog(
             getWindowAncestor(this),
             -1,
             itemStore,
             transformerStore,
-            { reloadValuesTable(itemStore.items) },
-            { rowToName(-1) })
+            ::reloadValuesTable,
+            ::getRowName
+        ) { tableLen(valuesTable) }
         window.title = "Add value"
         window.isVisible = true
     }
 
-    private fun transformerAdd() {
-        val window = TransformerAddDialog(getWindowAncestor(this), transformerStore) {
-            reloadTransformersTable(
-                transformerStore.transformers
-            )
-        }
-        window.title = "Add transformer"
-        window.isVisible = true
-    }
-
-    private fun valueEdit() {
-        val selected = VALUES_TABLE.selectedRowCount
-        if (selected < 1) {
-            return
-        }
-        if (selected != 1) {
+    private fun editValue() {
+        if (valuesTable.selectedRowCount != 1) {
             showMessageDialog(null, "Can only edit 1 entry at a time!")
             return
         }
 
-        val index = VALUES_TABLE.selectedRows[0]
-
+        val index = valuesTable.selectedRows[0]
         val window = AddEditDialog(
             getWindowAncestor(this),
             index,
             itemStore,
             transformerStore,
-            { reloadValuesTable(itemStore.items) },
-            { rowToName(index) })
+            ::reloadValuesTable,
+            ::getRowName
+        ) { tableLen(valuesTable) }
         window.title = "Edit value"
         window.isVisible = true
     }
 
-    private fun valueRemove() {
-        val selectedRows = VALUES_TABLE.selectedRows.reversed()
-        VALUES_TABLE.clearSelection() // visual bug workaround
+    private fun removeValue() {
+        val selectedRows = valuesTable.selectedRows.reversed()
+        valuesTable.clearSelection() // visual bug workaround
 
-        for (row in selectedRows) {
-            itemStore.items.remove(rowToName(row))
+        selectedRows.forEach { row ->
+            itemStore.items.remove(getRowName(row))
         }
 
         itemStore.save()
-
         reloadValuesTable(itemStore.items)
     }
 
-    private fun transformerRemove() {
-        val selectedRows = TRANSFORMER_TABLE.selectedRows
-        TRANSFORMER_TABLE.clearSelection() // visual bug workaround
+    private fun addTransformer() {
+        val window = TransformerAddDialog(getWindowAncestor(this), transformerStore) {
+            reloadTransformersTable(transformerStore.transformers)
+        }
+        window.title = "Add transformer"
+        window.isVisible = true
+    }
+
+    private fun removeTransformer() {
+        val selectedRows = transformerTable.selectedRows
+        transformerTable.clearSelection() // visual bug workaround
 
         if (selectedRows.isEmpty()) return
 
-        transformerStore.transformers.remove(rowToTName(selectedRows[0]))
+        transformerStore.transformers.remove(getTransformerRowName(selectedRows[0]))
         transformerStore.save()
         transformerEditor.text = ""
 
         reloadTransformersTable(transformerStore.transformers)
     }
 
-    private fun transformerSave() {
-        transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)] = transformerEditor.text
+    private fun saveTransformer() {
+        transformerStore.transformers[getTransformerRowName(transformerTable.selectedRow)] = transformerEditor.text
         transformerStore.save()
-
         transformerEditorSave.isEnabled = false
     }
 
-    private fun transformerTest() {
+    private fun testTransformer() {
         val window = TransformerTestDialog(
             getWindowAncestor(this),
             transformerEditor.text,
-            itemStore.items[rowToName(VALUES_TABLE.selectedRow)]?.lastMatch!!
+            itemStore.items[getRowName(valuesTable.selectedRow)]?.lastMatch ?: ""
         )
         window.title = "Transformer output"
         window.isVisible = true
     }
 
-    private fun enabledToggle(e: ItemEvent) {
+    private fun toggleExtensionEnabled(e: ItemEvent) {
         extEnabled = e.stateChange == ItemEvent.SELECTED
         ctx.setBoolean("extEnabled", extEnabled)
     }
 
-    private fun toolSelected(tool: ToolType, e: ItemEvent) {
+    private fun toggleToolSelected(tool: ToolType, e: ItemEvent) {
         val enabled = e.stateChange == ItemEvent.SELECTED
         enabledTools[tool] = enabled
         ctx.setBoolean("${tool.name}-enabled", enabled)
     }
 
-    private fun tableEdit(e: TableModelEvent) {
-        val dtm = e.source as TableModel
+    private fun onEditorTyped() {
+        if (transformerTable.selectedRowCount != 0) {
+            transformerEditorSave.isEnabled = true
+        }
+    }
+
+    private fun getRowName(row: Int): String {
+        return valuesTable.model.getValueAt(row, 1).toString()
+    }
+
+    private fun getTransformerRowName(row: Int): String {
+        return transformerTable.model.getValueAt(row, 0).toString()
+    }
+
+    private fun onTableEdit(e: TableModelEvent) {
+        val dtm = e.source as DefaultTableModel
         if (dtm.rowCount == 0) return
 
         val index = e.firstRow
         val enabled = dtm.getValueAt(index, 0) as Boolean
 
-        itemStore.items[rowToName(index)]!!.enabled = enabled
+        itemStore.items[getRowName(index)]!!.enabled = enabled
         itemStore.save()
     }
 
-    private fun tableSelected() {
-        when (VALUES_TABLE.selectedRowCount) {
-            0 -> {
-                valueRemove.isEnabled = false
-                valueEdit.isEnabled = false
-                transformerEditorTest.isEnabled = false
-            }
-
-            1 -> {
-                valueRemove.isEnabled = true
-                valueEdit.isEnabled = true
-                if (TRANSFORMER_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
-            }
-
-            else -> {
-                valueRemove.isEnabled = true
-                valueEdit.isEnabled = false
-                transformerEditorTest.isEnabled = false
-            }
-        }
+    private fun onTableSelected() {
+        val selected = valuesTable.selectedRowCount
+        valueRemove.isEnabled = selected > 0
+        valueEdit.isEnabled = selected == 1
+        transformerEditorTest.isEnabled = selected == 1 && transformerTable.selectedRowCount == 1
     }
 
-    private fun transformerSelected() {
+    private fun onTransformerSelected() {
         transformerEditorSave.isEnabled = false
+        val selected = transformerTable.selectedRowCount
 
-        when (TRANSFORMER_TABLE.selectedRowCount) {
-            0 -> {
-                transformerRemove.isEnabled = false
-                transformerEditorPanel.isVisible = false
-            }
+        transformerRemove.isEnabled = selected > 0
+        transformerEditorPanel.isVisible = selected > 0
 
-            else -> {
-                transformerRemove.isEnabled = true
-                transformerEditor.text =
-                    transformerStore.transformers[rowToTName(TRANSFORMER_TABLE.selectedRow)]
-                if (VALUES_TABLE.selectedRowCount == 1) transformerEditorTest.isEnabled = true
-                transformerEditorPanel.isVisible = true
-                transformerEditor.requestFocusInWindow()
-            }
+        if (selected > 0) {
+            transformerEditor.text = transformerStore.transformers[getTransformerRowName(transformerTable.selectedRow)]
+            transformerEditorTest.isEnabled = valuesTable.selectedRowCount == 1
+            transformerEditor.requestFocusInWindow()
+        } else {
+            transformerEditor.text = ""
         }
     }
 
-    private fun editorTyped() {
-        if (TRANSFORMER_TABLE.selectedRowCount != 0) {
-            transformerEditorSave.isEnabled = true
-        }
+    fun isEnabled(tool: ToolType): Boolean {
+        return enabledTools[tool] ?: false
+    }
+
+    private fun tableLen(table: JTable): Int {
+        return table.model.rowCount
+    }
+
+    fun updated(name: String, value: String, count: Int) {
+        val item = itemStore.items[name] ?: return
+        item.lastMatch = value
+        item.matchCount = count
+        itemStore.save()
+    }
+
+    fun replaced(name: String, count: Int) {
+        val item = itemStore.items[name] ?: return
+        item.replaceCount = count
+        itemStore.save()
     }
 }

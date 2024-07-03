@@ -1,10 +1,10 @@
 package burp
 
-import burp.ui.MainActivity
 import burp.api.montoya.BurpExtension
 import burp.api.montoya.MontoyaApi
 import burp.api.montoya.http.handler.*
 import burp.api.montoya.http.message.requests.HttpRequest
+import burp.ui.MainActivity
 import java.util.*
 
 const val EXTENSION_NAME = "Value Autoupdater"
@@ -33,11 +33,19 @@ class BurpExtender : BurpExtension {
         items = ItemStore(api.persistence().preferences())
         transformers = TransformerStore(api.persistence().preferences())
         mainActivity = MainActivity(api, items, transformers)
-        replacer = Replacer(items, transformers)
+        replacer = Replacer(
+            items,
+            transformers,
+            { name, count -> mainActivity.replaced(name, count) },
+            { name, value, index -> mainActivity.updated(name, value, index) })
 
         api.http().registerHttpHandler(ExtHttpHandler())
 
-        Log.info("Initialized $EXTENSION_NAME ${properties.getProperty("version")} (${properties.getProperty("commitHash").take(8)})")
+        Log.info(
+            "Initialized $EXTENSION_NAME ${properties.getProperty("version")} (${
+                properties.getProperty("commitHash").take(8)
+            })"
+        )
     }
 
     inner class ExtHttpHandler : HttpHandler {

@@ -1,7 +1,5 @@
 package burp
 
-import burp.ui.replaced
-import burp.ui.updated
 import com.google.re2j.Pattern
 import com.google.re2j.PatternSyntaxException
 
@@ -74,7 +72,7 @@ class HeaderStrategy : ReplaceStrategy {
     }
 }
 
-class Replacer(private val itemStore: ItemStore, private val transformerStore: TransformerStore) {
+class Replacer(private val itemStore: ItemStore, private val transformerStore: TransformerStore, private val replaced: (String, Int) -> Unit, private val updated: (String, String, Int) -> Unit) {
     private val strategies: Map<ItemType, ReplaceStrategy> = mapOf(
         ItemType.REGEX to RegexStrategy(),
         ItemType.HEADER to HeaderStrategy(),

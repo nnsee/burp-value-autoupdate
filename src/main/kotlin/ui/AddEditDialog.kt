@@ -117,7 +117,7 @@ class AddEditDialog(
 
     private fun loadTransformers() {
         transformerComboBox.addItem("")
-        transformerStore.transformers.forEach {
+        transformerStore.items.forEach {
             transformerComboBox.addItem(it.key)
         }
         transformerComboBox.selectedIndex = 0

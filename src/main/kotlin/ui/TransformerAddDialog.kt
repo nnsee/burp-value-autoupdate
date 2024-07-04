@@ -65,14 +65,14 @@ class TransformerAddDialog(
             return false
         }
 
-        if (transformerStore.transformers[name] != null) {
+        if (transformerStore.items[name] != null) {
             showError("Transformer named \"$name\" already exists!")
             return false
         }
-        transformerStore.transformers[name] = TRANSFORMER_EDITOR_HINT
+        transformerStore.items[name] = TRANSFORMER_EDITOR_HINT
 
         transformerStore.save()
-        reloadTransformersTable(transformerStore.transformers)
+        reloadTransformersTable(transformerStore.items)
 
         return true
     }

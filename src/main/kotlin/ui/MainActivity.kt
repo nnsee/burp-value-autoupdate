@@ -270,7 +270,7 @@ class MainActivity(
         }
 
         reloadValuesTable(itemStore.items)
-        reloadTransformersTable(transformerStore.transformers)
+        reloadTransformersTable(transformerStore.items)
     }
 
     private fun addValue() {
@@ -319,7 +319,7 @@ class MainActivity(
 
     private fun addTransformer() {
         val window = TransformerAddDialog(getWindowAncestor(this), transformerStore) {
-            reloadTransformersTable(transformerStore.transformers)
+            reloadTransformersTable(transformerStore.items)
         }
         window.title = "Add transformer"
         window.isVisible = true
@@ -331,15 +331,15 @@ class MainActivity(
 
         if (selectedRows.isEmpty()) return
 
-        transformerStore.transformers.remove(getTransformerRowName(selectedRows[0]))
+        transformerStore.items.remove(getTransformerRowName(selectedRows[0]))
         transformerStore.save()
         transformerEditor.text = ""
 
-        reloadTransformersTable(transformerStore.transformers)
+        reloadTransformersTable(transformerStore.items)
     }
 
     private fun saveTransformer() {
-        transformerStore.transformers[getTransformerRowName(transformerTable.selectedRow)] = transformerEditor.text
+        transformerStore.items[getTransformerRowName(transformerTable.selectedRow)] = transformerEditor.text
         transformerStore.save()
         transformerEditorSave.isEnabled = false
     }
@@ -349,8 +349,7 @@ class MainActivity(
             getWindowAncestor(this),
             transformerEditor.text,
             itemStore.items[getRowName(valuesTable.selectedRow)]?.lastMatch ?: "",
-            // all values
-            itemStore.items.mapValues { it.value.lastMatch },
+            itemStore.items
         )
         window.title = "Transformer output"
         window.isVisible = true
@@ -407,7 +406,7 @@ class MainActivity(
         transformerEditorPanel.isVisible = selected > 0
 
         if (selected > 0) {
-            transformerEditor.text = transformerStore.transformers[getTransformerRowName(transformerTable.selectedRow)]
+            transformerEditor.text = transformerStore.items[getTransformerRowName(transformerTable.selectedRow)]
             transformerEditorTest.isEnabled = valuesTable.selectedRowCount == 1
             transformerEditor.requestFocusInWindow()
         } else {

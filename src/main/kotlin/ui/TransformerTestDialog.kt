@@ -1,5 +1,6 @@
 package burp.ui
 
+import burp.Items
 import burp.evalTransformer
 import net.miginfocom.swing.MigLayout
 import java.awt.Color
@@ -8,7 +9,7 @@ import java.awt.Window
 import java.awt.event.WindowEvent
 import javax.swing.*
 
-class TransformerTestDialog(owner: Window, transformer: String, value: String, values: Map<String, String>) : JDialog(owner) {
+class TransformerTestDialog(owner: Window, transformer: String, value: String, values: Items) : JDialog(owner) {
     private val nameLabel = JLabel("Output")
     private val output = JTextArea(10, 80).apply {
         font = Font(Font.MONOSPACED, Font.PLAIN, font.size)

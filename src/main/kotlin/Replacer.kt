@@ -24,8 +24,8 @@ interface ReplaceStrategy {
             res.matched = true
             var value = item.lastMatch
             if (item.transformer != "") {
-                transformerStore.transformers[item.transformer]?.let {
-                    val transformed = evalTransformer(value, itemStore.getAll(), it)
+                transformerStore.items[item.transformer]?.let {
+                    val transformed = evalTransformer(value, itemStore.items, it)
                     if (transformed.err == "")
                         value = transformed.out
                 }

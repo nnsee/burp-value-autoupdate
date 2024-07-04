@@ -1,8 +1,5 @@
 package burp
 
-import burp.api.montoya.persistence.Preferences
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.Source
 import org.graalvm.polyglot.Value
@@ -10,7 +7,6 @@ import java.io.InputStreamReader
 
 var LIB: Value? = null
 var DONE_LIB_INIT = false
-const val TRANSFORMER_STORE = "transformerStore"
 
 data class TransformerResult(var out: String, var err: String)
 
@@ -31,7 +27,7 @@ fun initTransformerBundle(): Value? {
     return context.eval(source)
 }
 
-fun evalTransformer(value: String, values: Map<String, String>, transformer: String): TransformerResult {
+fun evalTransformer(value: String, values: Items, transformer: String): TransformerResult {
     val res = TransformerResult("", "")
 
     if (!DONE_LIB_INIT) {
@@ -44,7 +40,7 @@ fun evalTransformer(value: String, values: Map<String, String>, transformer: Str
 
     // convert the HashMap to a JavaScript object
     val jsValues = context.eval("js", "({})")
-    values.forEach { (k, v) -> jsValues.putMember(k, v) }
+    values.forEach { (k, v) -> jsValues.putMember(k, v.lastMatch) }
     bindings.putMember("values", jsValues)
     bindings.putMember("Lib", LIB)
 
@@ -58,31 +54,4 @@ fun evalTransformer(value: String, values: Map<String, String>, transformer: Str
     context.close()
 
     return res
-}
-
-typealias Transformers = MutableMap<String, String> // name -> transformer
-
-class TransformerStore(private val ctx: Preferences) {
-    var transformers: Transformers
-
-    init {
-        this.transformers = load()
-    }
-
-    private fun load(): Transformers {
-        // loads and returns transformers from persistent storage
-        val jsonStr = ctx.getString(TRANSFORMER_STORE) ?: "{}"
-
-        return Json.decodeFromString(jsonStr)
-    }
-
-    fun save() {
-        // saves items in memory to disk
-        ctx.setString(TRANSFORMER_STORE, Json.encodeToString(transformers))
-    }
-
-    @Suppress("unused")
-    fun nuke() {
-        ctx.deleteString(TRANSFORMER_STORE)
-    }
 }

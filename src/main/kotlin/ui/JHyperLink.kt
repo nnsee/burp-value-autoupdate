@@ -21,7 +21,6 @@ class JHyperLink(
 
     init {
         toolTipText = linkUri.toString()
-        setUnderline(true)
         foreground = UIManager.getColor("Component.linkColor")
 
         UIManager.addPropertyChangeListener { e ->
@@ -39,12 +38,12 @@ class JHyperLink(
 
             override fun mouseEntered(e: MouseEvent) {
                 cursor = Cursor(Cursor.HAND_CURSOR)
-                setUnderline(false)
+                setUnderline(true)
             }
 
             override fun mouseExited(e: MouseEvent) {
                 cursor = Cursor(Cursor.DEFAULT_CURSOR)
-                setUnderline(true)
+                setUnderline(false)
             }
         })
     }

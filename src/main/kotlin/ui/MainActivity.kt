@@ -123,9 +123,9 @@ class MainActivity(
         add(JPanel(MigLayout("fillx, wrap", "[fill]")).apply {
             add(enabledToggle, "align left top")
         }, "growy, pushy")
-        add(JPanel(MigLayout("fillx, align left top, wrap, ins 0 n 0 n", "[][]")).apply {
-            add(JHyperLink("Source", "https://git.dog/xx/burp-elastic-pusher"), "split 2")
-            add(JHyperLink("Documentation", "https://git.dog/xx/burp-elastic-pusher/wiki"))
+        add(JPanel(MigLayout("ins 0 3 0 0", "[]25[]")).apply {
+            add(JHyperLink("Project source", "https://git.dog/xx/burp-elastic-pusher"))
+            add(JHyperLink("Wiki", "https://git.dog/xx/burp-elastic-pusher/wiki"))
         })
     }
 

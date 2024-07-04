@@ -111,22 +111,22 @@ class MainActivity(
         })
     }
 
-    private fun createLeftPanel() = JPanel(MigLayout("fillx, align left top", "[fill]")).apply {
-        add(JLabel("Values to Track").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-        add(createValuesPanel(), "wrap")
-        add(JSeparator(), "growx, wrap")
-        add(JLabel("Enabled tools").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-        add(createToolsPanel(), "wrap")
-        add(JSeparator(), "growx, wrap")
-        add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-        add(JPanel(MigLayout()).apply { add(enabledToggle) }, "wrap")
+    private fun createLeftPanel() = JPanel(MigLayout("fillx, align left top, wrap", "[fill]")).apply {
+        add(JLabel("Values to Track").apply { font = font.deriveFont(Font.BOLD) })
+        add(createValuesPanel())
+        add(JSeparator(), "growx")
+        add(JLabel("Enabled tools").apply { font = font.deriveFont(Font.BOLD) })
+        add(createToolsPanel())
+        add(JSeparator(), "growx")
+        add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) })
+        add(JPanel(MigLayout()).apply { add(enabledToggle) })
     }
 
     private fun createValuesPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
-        add(JPanel(MigLayout("ins 0", "[fill]")).apply {
-            add(createButton("Add", ::addValue).apply { isEnabled = true }, "wrap")
-            add(valueEdit, "wrap")
-            add(valueRemove, "wrap")
+        add(JPanel(MigLayout("ins 0, wrap", "[fill]")).apply {
+            add(createButton("Add", ::addValue).apply { isEnabled = true })
+            add(valueEdit)
+            add(valueRemove)
         }, "aligny top, growy 0")
         add(JScrollPane(valuesTable), "grow, push")
     }
@@ -137,16 +137,16 @@ class MainActivity(
         }
     }
 
-    private fun createRightPanel() = JPanel(MigLayout("fill, align left top", "[fill]")).apply {
-        add(JLabel("Value Transformers").apply { font = font.deriveFont(Font.BOLD) }, "wrap")
-        add(createTransformersPanel(), "wrap")
+    private fun createRightPanel() = JPanel(MigLayout("fill, align left top, wrap", "[fill]")).apply {
+        add(JLabel("Value Transformers").apply { font = font.deriveFont(Font.BOLD) })
+        add(createTransformersPanel())
         add(transformerEditorPanel, "grow, push")
     }
 
     private fun createTransformersPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {
-        add(JPanel(MigLayout("ins 0", "[fill]")).apply {
-            add(createButton("Add", ::addTransformer).apply { isEnabled = true }, "wrap")
-            add(transformerRemove, "wrap")
+        add(JPanel(MigLayout("ins 0, wrap", "[fill]")).apply {
+            add(createButton("Add", ::addTransformer).apply { isEnabled = true })
+            add(transformerRemove)
         }, "aligny top, growy")
         add(JScrollPane(transformerTable), "grow, push")
     }

@@ -9,6 +9,7 @@ import burp.api.montoya.core.ToolType
 import burp.api.montoya.persistence.Preferences
 import net.miginfocom.swing.MigLayout
 import org.fife.ui.rtextarea.RTextScrollPane
+import ui.JHyperLink
 import java.awt.Component
 import java.awt.Font
 import java.awt.event.ComponentAdapter
@@ -119,7 +120,13 @@ class MainActivity(
         add(createToolsPanel())
         add(JSeparator(), "growx")
         add(JLabel("Settings").apply { font = font.deriveFont(Font.BOLD) })
-        add(JPanel(MigLayout()).apply { add(enabledToggle) })
+        add(JPanel(MigLayout("fillx, wrap", "[fill]")).apply {
+            add(enabledToggle, "align left top")
+        }, "growy, pushy")
+        add(JPanel(MigLayout("fillx, align left top, wrap, ins 0 n 0 n", "[][]")).apply {
+            add(JHyperLink("Source", "https://git.dog/xx/burp-elastic-pusher"), "split 2")
+            add(JHyperLink("Documentation", "https://git.dog/xx/burp-elastic-pusher/wiki"))
+        })
     }
 
     private fun createValuesPanel() = JPanel(MigLayout("", "[fill][fill]")).apply {

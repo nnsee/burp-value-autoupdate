@@ -1,5 +1,7 @@
 package burp
 
+import burp.api.montoya.http.handler.HttpResponseReceived
+import burp.api.montoya.http.message.responses.HttpResponse
 import com.google.re2j.Pattern
 import com.google.re2j.PatternSyntaxException
 
@@ -16,7 +18,7 @@ data class ReplaceResult(
 val regexCache = mutableMapOf<String, Pattern>()
 
 interface ReplaceStrategy {
-    fun updateValue(request: String, match: String): Response
+    fun updateValue(request: HttpResponse, match: String): Response
     fun matchAndReplace(request: String, key: String, item: Item, transformerStore: TransformerStore, itemStore: ItemStore): Response {
         val res = Response(false, "")
 
@@ -38,7 +40,7 @@ interface ReplaceStrategy {
 }
 
 class RegexStrategy : ReplaceStrategy {
-    override fun updateValue(request: String, match: String): Response {
+    override fun updateValue(request: HttpResponse, match: String): Response {
         val res = Response(false, "")
 
         if (match !in regexCache) {
@@ -46,7 +48,7 @@ class RegexStrategy : ReplaceStrategy {
             regexCache[match] = Pattern.compile(match, Pattern.MULTILINE)
         }
 
-        val matcher = regexCache[match]!!.matcher(request)
+        val matcher = regexCache[match]!!.matcher(request.toString())
 
         while (matcher.find()) {
             res.matched = true
@@ -58,9 +60,9 @@ class RegexStrategy : ReplaceStrategy {
 }
 
 class HeaderStrategy : ReplaceStrategy {
-    override fun updateValue(request: String, match: String): Response {
+    override fun updateValue(request: HttpResponse, match: String): Response {
         val res = Response(false, "")
-        val headers = request.split("\r\n\r\n")[0]
+        val headers = request.toString().split("\r\n\r\n")[0]
         val lookup = "$match: "
 
         if (headers.contains(lookup)) {
@@ -77,6 +79,8 @@ class Replacer(private val itemStore: ItemStore, private val transformerStore: T
         ItemType.REGEX to RegexStrategy(),
         ItemType.HEADER to HeaderStrategy(),
     )
+
+    private val filterEvaluator = FilterEvaluator()
 
     fun handleRequest(request: String): ReplaceResult {
         // replaces values if necessary
@@ -100,12 +104,14 @@ class Replacer(private val itemStore: ItemStore, private val transformerStore: T
         return result
     }
 
-    fun handleResponse(response: String): ReplaceResult {
+    fun handleResponse(response: HttpResponseReceived): ReplaceResult {
         // updates last values in store
         val result = ReplaceResult(false, "", ReplaceType.RESPONSE, mutableListOf())
 
         itemStore.items.forEach {
             if (!it.value.enabled) return@forEach
+            if (it.value.responseFilters != null && !filterEvaluator.matches(response, it.value.responseFilters!!)) return@forEach
+            if (it.value.requestFilters != null && !filterEvaluator.matches(response.initiatingRequest(), it.value.requestFilters!!)) return@forEach
             val resp = strategies[it.value.type]?.updateValue(response, it.value.match)!!
 
             if (resp.matched) {

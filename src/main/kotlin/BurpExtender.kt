@@ -58,7 +58,7 @@ class BurpExtender : BurpExtension {
 
         override fun handleHttpResponseReceived(response: HttpResponseReceived): ResponseReceivedAction {
             if (mainActivity.isEnabled(response.toolSource().toolType()))
-                replacer.handleResponse(response.toString())
+                replacer.handleResponse(response)
             return ResponseReceivedAction.continueWith(response)
         }
 

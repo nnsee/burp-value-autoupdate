@@ -15,4 +15,6 @@ data class Item(
     var matchCount: Int,
     var replaceCount: Int,
     var transformer: String,
+    var requestFilters: RequestFilterChain? = null,
+    var responseFilters: ResponseFilterChain? = null
 )
